@@ -19,6 +19,5 @@ fun UICompanionApp()
             text = "The Rumble",
             fontSize = 20.sp
         )
-
     }
 }
