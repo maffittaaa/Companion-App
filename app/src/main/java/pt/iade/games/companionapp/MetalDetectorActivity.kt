@@ -30,7 +30,7 @@ class MetalDetectorActivity : ComponentActivity() {
 
 @Composable
 fun MetalDetector() {
-
+    Text("hi, this is the metal detector")
 }
 
 @Preview(showBackground = true)

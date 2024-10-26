@@ -1,6 +1,7 @@
 package pt.iade.games.companionapp.ui.components
 
 import android.graphics.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,15 +24,22 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+private infix fun Unit.clickable(function: () -> Unit) {
+
+}
+
 @Composable
 fun OptionCard(
     modifier: Modifier = Modifier,
-    name: String = "option"
+    name: String = "option",
+    onClick: () -> Unit = {}
 ){
     val configuration = LocalConfiguration.current
 
     Card(
-        modifier = modifier.padding(20.dp)
+        modifier = modifier
+            .padding(20.dp)
+            .clickable { onClick() }
     ){
         Column (
             modifier = Modifier.fillMaxSize(),
