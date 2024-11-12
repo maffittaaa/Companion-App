@@ -51,41 +51,46 @@ class MainActivity : ComponentActivity() {
 fun Greeting() {
     val context = LocalContext.current
     var size by remember { mutableStateOf(IntSize.Zero) }
-
-    Column (
-        modifier = Modifier.fillMaxSize()
-            .onSizeChanged {
-                size = it
-            },
+    Column(
         verticalArrangement = Arrangement.Bottom,
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
     ){
-
-        with(LocalDensity.current) {
-            val modifier = Modifier.size(
-                width = size.width.toDp() * 9/10,
-                height = size.width.toDp() * 9/10
-            )
-            OptionCard(
-                name = "Analysis Machine",
-                modifier = modifier,
-                onClick = {
-                    Toast.makeText(context, "Analysis Machine", Toast.LENGTH_LONG).show()
-                    val intent = Intent(context, AnalysisMachineActivity::class.java)
-                    context.startActivity(intent)
-                }
-            )
-            OptionCard(
-                name = "Metal detector",
-                modifier = modifier,
-                onClick = {
-                    Toast.makeText(context, "Metal Detector", Toast.LENGTH_LONG).show()
-                    val intent = Intent(context, MetalDetectorActivity::class.java)
-                    context.startActivity(intent)
-                }
-            )
+        LogoPreview()
+        Column (
+            modifier = Modifier.fillMaxSize()
+                .onSizeChanged {
+                    size = it
+                },
+            verticalArrangement = Arrangement.Bottom,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ){
+            with(LocalDensity.current) {
+                val modifier = Modifier.size(
+                    width = size.width.toDp() * 9/10,
+                    height = size.width.toDp() * 9/10
+                )
+                OptionCard(
+                    name = "Analysis Machine",
+                    modifier = modifier,
+                    onClick = {
+                        Toast.makeText(context, "Analysis Machine", Toast.LENGTH_LONG).show()
+                        val intent = Intent(context, AnalysisMachineActivity::class.java)
+                        context.startActivity(intent)
+                    }
+                )
+                OptionCard(
+                    name = "Metal detector",
+                    modifier = modifier,
+                    onClick = {
+                        Toast.makeText(context, "Metal Detector", Toast.LENGTH_LONG).show()
+                        val intent = Intent(context, MetalDetectorActivity::class.java)
+                        context.startActivity(intent)
+                    }
+                )
+            }
         }
     }
+
 }
 
 @Preview(showBackground = true)
