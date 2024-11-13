@@ -4,13 +4,18 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
+import com.google.gson.Gson
+import pt.iade.games.companionapp.ui.data.ActivityData
 import pt.iade.games.companionapp.ui.theme.CompanionAppTheme
 
 class MetalDetectorActivity : ComponentActivity() {
@@ -21,7 +26,8 @@ class MetalDetectorActivity : ComponentActivity() {
             CompanionAppTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     innerPadding
-                    MetalDetector()
+                    val dataJson = intent.getStringExtra("DATA")
+                    MetalDetector(dataJson)
                 }
             }
         }
@@ -29,12 +35,21 @@ class MetalDetectorActivity : ComponentActivity() {
 }
 
 @Composable
-fun MetalDetector() {
-    Text("hi, this is the metal detector")
+fun MetalDetector(
+    dataJson: String?
+) {
+    val data = Gson().fromJson(dataJson, ActivityData::class.java)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(data.darkColor)
+    ){
+
+    }
 }
 
 @Preview(showBackground = true)
 @Composable
 fun MetalDetectorPreview() {
-
 }

@@ -20,28 +20,31 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.gson.Gson
+import pt.iade.games.companionapp.ui.data.ActivityData
 
 @Composable
 fun OptionCard(
     modifier: Modifier = Modifier,
     name: String = "option",
-    color: Color = Color.White,
+    data: ActivityData,
     intent: Intent
 ){
     val context = LocalContext.current
+    val dataJson = Gson().toJson(data)
     Card(
         onClick = {
             context.startActivity(
                 intent.apply
                 {
-                    putExtra("COLOR", "a")
+                    putExtra("DATA", dataJson)
                 }
             )
         },
         modifier = modifier
             .padding(bottom = 50.dp),
         colors = CardDefaults.cardColors(
-            containerColor = color,
+            containerColor = data.lightColor,
         ),
     ){
         Column (
@@ -53,6 +56,7 @@ fun OptionCard(
                 text = name,
                 fontSize = 25.sp,
                 textAlign = TextAlign.Center,
+                color = data.darkColor,
                 lineHeight = 50.sp
             )
         }

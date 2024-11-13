@@ -27,6 +27,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntSize
 import pt.iade.games.companionapp.ui.components.LogoPreview
 import pt.iade.games.companionapp.ui.components.OptionCard
+import pt.iade.games.companionapp.ui.data.ActivityData
 import pt.iade.games.companionapp.ui.theme.CompanionAppTheme
 
 class MainActivity : ComponentActivity() {
@@ -67,19 +68,25 @@ fun Greeting() {
             ){
                 with(LocalDensity.current) {
                     val modifier = Modifier.size(
-                        width = size.width.toDp() * 8f/10,
+                        width = size.width.toDp() * 7f/10,
                         height = size.width.toDp() * 8f/10
                     )
                     OptionCard(
                         name = "Analysis Machine",
                         modifier = modifier,
-                        color = Color(100, 110, 170, 255),
+                        data = ActivityData(
+                            lightColor = Color(100, 110, 170, 255),
+                            darkColor = Color(34, 37, 58, 255)
+                        ),
                         intent = Intent(context, AnalysisMachineActivity::class.java)
                     )
                     OptionCard(
                         name = "Metal Detector",
                         modifier = modifier,
-                        color = Color(170, 110, 100, 255),
+                        data = ActivityData(
+                            lightColor = Color(170, 110, 100, 255),
+                            darkColor = Color(51, 30, 30, 255)
+                        ),
                         intent = Intent(context, MetalDetectorActivity::class.java)
                     )
                 }

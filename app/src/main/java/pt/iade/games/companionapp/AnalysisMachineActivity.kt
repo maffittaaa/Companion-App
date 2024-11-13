@@ -21,6 +21,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.graphics.convertTo
 import androidx.core.graphics.toColor
 import androidx.core.graphics.toColorInt
+import com.google.gson.Gson
+import pt.iade.games.companionapp.ui.data.ActivityData
 import pt.iade.games.companionapp.ui.theme.CompanionAppTheme
 
 class AnalysisMachineActivity : ComponentActivity() {
@@ -31,7 +33,8 @@ class AnalysisMachineActivity : ComponentActivity() {
             CompanionAppTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     innerPadding
-                    AnalysisMachine()
+                    val dataJson = intent.getStringExtra("DATA")
+                    AnalysisMachine(dataJson)
                 }
             }
         }
@@ -40,8 +43,18 @@ class AnalysisMachineActivity : ComponentActivity() {
 
 @Composable
 fun AnalysisMachine(
-
+    dataJson: String?
 ) {
+    val data = Gson().fromJson(dataJson, ActivityData::class.java)
+    val backgroundColor = Color(34, 37, 58, 255)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(backgroundColor)
+    ){
+
+    }
 
 }
 
