@@ -20,7 +20,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.google.gson.Gson
 import pt.iade.games.companionapp.ui.data.ActivityData
 
 @Composable
@@ -31,13 +30,12 @@ fun OptionCard(
     intent: Intent
 ){
     val context = LocalContext.current
-    val dataJson = Gson().toJson(data)
     Card(
         onClick = {
             context.startActivity(
                 intent.apply
                 {
-                    putExtra("DATA", dataJson)
+                    putExtra("DATA", data)
                 }
             )
         },

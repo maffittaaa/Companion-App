@@ -1,10 +1,12 @@
 package pt.iade.games.companionapp
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,11 +32,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.graphics.convertTo
 import androidx.core.graphics.toColor
 import androidx.core.graphics.toColorInt
-import com.google.gson.Gson
 import pt.iade.games.companionapp.ui.data.ActivityData
 import pt.iade.games.companionapp.ui.theme.CompanionAppTheme
 
 class AnalysisMachineActivity : ComponentActivity() {
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -42,8 +44,8 @@ class AnalysisMachineActivity : ComponentActivity() {
             CompanionAppTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     innerPadding
-                    //val dataJson = intent.getStringExtra("DATA")
-                    ScreenManager()
+                    val data = intent.getSerializableExtra("DATA", ActivityData::class.java)!!
+                    ScreenManager(data)
                 }
             }
         }
@@ -51,81 +53,95 @@ class AnalysisMachineActivity : ComponentActivity() {
 }
 
 @Composable
-fun ScreenManager(){
+fun ScreenManager(
+    data: ActivityData
+) {
     var gameStarted by remember { mutableStateOf(false)}
     var gameEnded by remember { mutableStateOf(false)}
 
-    if (gameStarted){
-        //val dataJson = "{\"darkColor\":\"#22253A\"}"
-        AnalysisMachine(onStartClick = { gameEnded = true })
+    if (gameStarted) {
+        AnalysisMachine(
+            onStartClick = { gameEnded = true },
+            data = data
+        )
     } else
     {
-        StartScreen(onStartClick = { gameStarted = true })
+        StartScreen(onStartClick = { gameStarted = true },
+            data = data)
     }
     if (gameEnded){
-        EndScreen(onStartClick = { gameEnded = false })
+        EndScreen(onStartClick = { gameEnded = false },
+            data = data)
     }
 }
 
 @Composable
 fun AnalysisMachine(
-    onStartClick: () -> Unit
-    //dataJson: String?
+    onStartClick: () -> Unit,
+    data: ActivityData
 ) {
-    //val data = Gson().fromJson(dataJson, ActivityData::class.java)
-    val backgroundColor = Color(34, 37, 58, 255)
-
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(backgroundColor)
+            .background(data.darkColor)
     ){
         Text(
             text = "Analysis Machine Running",
-            color = Color.White,
+            color = data.lightColor,
             modifier = Modifier.align(Alignment.Center)
         )
         Button(
             onClick = onStartClick,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = data.lightColor,
+                contentColor = data.darkColor
+            )
         ) {
-            Text("End Game", color = Color.White)
+            Text("End Game", color = data.darkColor)
         }
     }
 
 }
 
 @Composable
-fun StartScreen(onStartClick: () -> Unit) {
+fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
     // centered "Start Game" button
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White),
+            .background(data.darkColor),
         contentAlignment = Alignment.Center
     ) {
         Button(
             onClick = onStartClick,
-            ) {
-            Text("Start Game", color = Color.White)
+            colors = ButtonDefaults.buttonColors(
+                containerColor = data.lightColor,
+                contentColor = data.darkColor
+            )) {
+            Text("Start Game", color = data.darkColor)
         }
 
     }
 }
 
 @Composable
-fun EndScreen(onStartClick: () -> Unit) {
+fun EndScreen(onStartClick: () -> Unit, data: ActivityData) {
     val context = LocalContext.current
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White),
+            .background(data.darkColor),
         contentAlignment = Alignment.Center
     ) {
         Button(
             onClick = {val intent = Intent(context, MainActivity::class.java)
-                context.startActivity(intent) }
+                context.startActivity(intent) },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = data.lightColor,
+                contentColor = data.darkColor
+            )
         ) {
-            Text("Back to Main", color = Color.White)
+            Text("Back to Main", color = data.darkColor)
         }
     }
 }
@@ -135,17 +151,32 @@ fun EndScreen(onStartClick: () -> Unit) {
 @Preview(showBackground = true)
 @Composable
 fun AnalysisMachinePreview() {
-    AnalysisMachine(onStartClick = {})
+    AnalysisMachine(
+        onStartClick = {},
+        data = ActivityData(
+            lightColor = Color.LightGray,
+            darkColor = Color.Red
+        )
+    )
 }
 
 @Preview(showBackground = true)
 @Composable
 fun StartScreenPreview() {
-    StartScreen(onStartClick = {})
+    StartScreen(
+        onStartClick = {},
+        data = ActivityData(
+            lightColor = Color.LightGray,
+            darkColor = Color.Red
+        )
+    )
 }
 
 @Preview(showBackground = true)
 @Composable
 fun EndScreenPreview() {
-    EndScreen(onStartClick = {})
+    EndScreen(onStartClick = {},
+        data = ActivityData(
+            lightColor = Color.LightGray,
+            darkColor = Color.Red))
 }

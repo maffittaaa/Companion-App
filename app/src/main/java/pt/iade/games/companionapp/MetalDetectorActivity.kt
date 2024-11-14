@@ -1,9 +1,11 @@
 package pt.iade.games.companionapp
 
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,11 +16,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
-import com.google.gson.Gson
 import pt.iade.games.companionapp.ui.data.ActivityData
 import pt.iade.games.companionapp.ui.theme.CompanionAppTheme
 
 class MetalDetectorActivity : ComponentActivity() {
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -26,8 +28,8 @@ class MetalDetectorActivity : ComponentActivity() {
             CompanionAppTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     innerPadding
-                    val dataJson = intent.getStringExtra("DATA")
-                    MetalDetector(dataJson)
+                    val data = intent.getSerializableExtra("DATA", ActivityData::class.java)!!
+                    MetalDetector(data)
                 }
             }
         }
@@ -36,10 +38,8 @@ class MetalDetectorActivity : ComponentActivity() {
 
 @Composable
 fun MetalDetector(
-    dataJson: String?
+    data: ActivityData
 ) {
-    val data = Gson().fromJson(dataJson, ActivityData::class.java)
-
     Box(
         modifier = Modifier
             .fillMaxSize()
