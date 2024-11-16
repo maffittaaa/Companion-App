@@ -1,5 +1,6 @@
 package pt.iade.games.companionapp
 
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -23,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -79,6 +81,7 @@ fun MetalDetectorScreenManager(
 
 @Composable
 fun MetalDetectorStartScreen(onStartClick: () -> Unit, data: ActivityData) {
+    val context = LocalContext.current
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -107,7 +110,25 @@ fun MetalDetectorStartScreen(onStartClick: () -> Unit, data: ActivityData) {
             contentDescription = null,
             alignment = Alignment.Center
         )
+
+        Button(
+            onClick = {
+                val intent = Intent(context, MainActivity::class.java)
+                context.startActivity(intent)
+            },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = data.lightColor,
+                contentColor = data.darkColor
+            ),
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(30.dp)
+        ) {
+            Text("Back", color = data.darkColor)
+        }
     }
+
+
 }
 
 @Composable
