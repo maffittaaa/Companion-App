@@ -4,7 +4,6 @@ import android.content.Context.MODE_PRIVATE
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -53,7 +52,7 @@ data class Pills(
     val velocityY: Float = 2f
 )
 
-var totalFlasks = 0
+var playersFlasks = 0
 
 class AnalysisMachineActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -103,10 +102,10 @@ fun ScreenManager(
             gameEnded = false
             gameStarted = false
             isTimerRunning = false
+            score = 0
         }, data = data,
             score = score)
     }
-
 }
 
 @Composable
@@ -158,7 +157,7 @@ fun AnalysisMachine(
 
     LaunchedEffect(pills) {
         while (true) {
-            delay(16L)
+            delay(32L)
             pills = pills.map { pill ->
                 if (pill.y > screenHeight) {
                     null
@@ -209,25 +208,24 @@ fun AnalysisMachine(
 
         Text(
             text = "Time Left: $timeLeftInSeconds seconds",
-            color = data.lightColor,
+            color = Color.White,
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 16.dp)
+                .padding(top = 50.dp)
         )
 
         Text(
             text = "Score: $score",
-            color = data.lightColor,
+            color = Color.White,
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 16.dp, end = 16.dp)
+                .padding(top = 50.dp, end = 16.dp)
         )
-
         Column(
             modifier = Modifier
-                .align(Alignment.Center)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Center,
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Button(
@@ -237,10 +235,21 @@ fun AnalysisMachine(
                 colors = ButtonDefaults.buttonColors(
                     containerColor = data.lightColor,
                     contentColor = data.darkColor
-                ),
-                modifier = Modifier.padding(top = 16.dp)
+                )
             ) {
                 Text("Skip to Last 5 Seconds", color = data.darkColor)
+            }
+
+            Button(
+                onClick = {
+                    onScoreChange(score + 10)
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = data.lightColor,
+                    contentColor = data.darkColor
+                )
+            ) {
+                Text("Adds +10 to score", color = data.darkColor)
             }
         }
     }
@@ -255,7 +264,7 @@ fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
 
     val currentTime = System.currentTimeMillis()
     var remainingTime by remember { mutableIntStateOf(((cooldownEndTime - currentTime) / 1000).toInt()) }
-    val isInCooldown = totalFlasks >= 8 && remainingTime > 0
+    val isInCooldown = playersFlasks >= 8 && remainingTime > 0
 
     LaunchedEffect(isInCooldown) {
         if (isInCooldown) { //Cooldown active
@@ -263,10 +272,10 @@ fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
                 delay(1000L)
                 remainingTime -= 1
             }
-            if (remainingTime == 0 && totalFlasks == 8)
-                totalFlasks = 0
+            if (remainingTime == 0 && playersFlasks == 8)
+                playersFlasks = 0
         } else if (cooldownEndTime > 0) {
-            sharedPreferences.edit().putInt("antiRadiationFlasks", totalFlasks).apply()
+            sharedPreferences.edit().putInt("antiRadiationFlasks", playersFlasks).apply()
         }
 
 
@@ -290,21 +299,6 @@ fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
                     color = data.lightColor,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
-
-
-                Button(
-                    onClick = {
-                        val newCooldownTime = System.currentTimeMillis() + 5000L
-                        sharedPreferences.edit().putLong("cooldownEndTime", newCooldownTime).apply()
-                        remainingTime = 5
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = data.lightColor,
-                        contentColor = data.darkColor
-                    )
-                ) {
-                    Text("Cheats: Skip Cooldown", color = Color.Black)
-                }
             } else {
                 Button(
                     onClick = onStartClick,
@@ -319,10 +313,29 @@ fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
             }
 
             Text(
-                text = "Total Anti-Radiation Flasks: $totalFlasks",
+                text = "Total Anti-Radiation Flasks: $playersFlasks",
                 color = data.lightColor,
                 modifier = Modifier.padding(top = 16.dp)
             )
+        }
+
+        if(isInCooldown){
+            Button(
+                onClick = {
+                    val newCooldownTime = System.currentTimeMillis() + 5000L
+                    sharedPreferences.edit().putLong("cooldownEndTime", newCooldownTime).apply()
+                    remainingTime = 5
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = data.lightColor,
+                    contentColor = data.darkColor
+                ),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 32.dp)
+            ) {
+                Text("Cheats: Skip Cooldown", color = data.darkColor)
+            }
         }
 
         Button(
@@ -336,7 +349,7 @@ fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
             ),
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(16.dp)
+                .padding(30.dp)
         ) {
             Text("Back", color = data.darkColor)
         }
@@ -348,25 +361,25 @@ fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
 @Composable
 fun EndScreen(onStartClick: () -> Unit, data: ActivityData, score: Int) {
     val context = LocalContext.current
-    val antiRadiationFlasks = (score * 0.1).toInt() //how many flasks did you won depending on how many pills you clicked on (10 pills = 1 flask)
+    val roundFlasks = (score * 0.1).toInt() //how many flasks did you won depending on how many pills you clicked on (10 pills = 1 flask)
 
-    LaunchedEffect(antiRadiationFlasks) {
+    LaunchedEffect(roundFlasks) {
         val sharedPreferences = context.getSharedPreferences("GamePrefs", MODE_PRIVATE)
-        val currentFlasks = sharedPreferences.getInt("antiRadiationFlasks", totalFlasks)
+        val flasksBeforeRound = sharedPreferences.getInt("antiRadiationFlasks", playersFlasks)
 
-        if (totalFlasks < 8) {
-            totalFlasks = currentFlasks + antiRadiationFlasks;
+        if (playersFlasks < 8) {
+            playersFlasks = flasksBeforeRound + roundFlasks;
         }
 
-        if (totalFlasks >= 8) {
-            totalFlasks = 8
+        if (playersFlasks >= 8) {
+            playersFlasks = 8
         }
 
         val editor = sharedPreferences.edit()
-        editor.putInt("antiRadiationFlasks", totalFlasks)
+        editor.putInt("antiRadiationFlasks", playersFlasks)
 
 
-        if (totalFlasks >= 8) {
+        if (playersFlasks >= 8) {
             val cooldownEndTime = System.currentTimeMillis() + 3600000L // 1 hour in milliseconds
             editor.putLong("cooldownEndTime", cooldownEndTime)
         }
@@ -381,7 +394,9 @@ fun EndScreen(onStartClick: () -> Unit, data: ActivityData, score: Int) {
             .background(data.darkColor),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            modifier = Modifier.align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "Final Score: $score",
                 color = data.lightColor,
@@ -389,24 +404,27 @@ fun EndScreen(onStartClick: () -> Unit, data: ActivityData, score: Int) {
             )
 
             Text(
-                text = "Anti-Radiation Flasks: $antiRadiationFlasks",
+                text = "Anti-Radiation Flasks: $roundFlasks",
                 color = data.lightColor,
                 modifier = Modifier.padding(bottom = 32.dp)
             )
-
+        }
             Button(
                 onClick = {
-                    val intent = Intent(context, MainActivity::class.java)
-                    context.startActivity(intent)
+                    //val intent = Intent(context, MainActivity::class.java)
+                    //context.startActivity(intent)
+                    onStartClick()
                 },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = data.lightColor,
                     contentColor = data.darkColor
-                )
+                ),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp)
             ) {
-                Text("Back to Main", color = data.darkColor)
+                Text("Back", color = data.darkColor)
             }
-        }
     }
 }
 
@@ -434,7 +452,9 @@ fun RoundTimer(data: ActivityData, onTimerEnd: () -> Unit){
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "Time Left: ${timeLeftInRound / 60}:${(timeLeftInRound % 60).toString().padStart(2, '0')}",
-                color = data.lightColor
+                color = Color.White,
+                modifier = Modifier
+                    .padding(top = 16.dp)
             )
         }
     }
