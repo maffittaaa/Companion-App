@@ -119,13 +119,35 @@ fun AnalysisMachine(
     val context = LocalContext.current
     val screenHeight = LocalContext.current.resources.displayMetrics.heightPixels.toFloat()
     val maxPills = 40
+    var timeLeftInSeconds by remember { mutableStateOf(60) }
+    var isSkipTimerClicked by remember { mutableStateOf(false) }
 
     LaunchedEffect(isTimerRunning) {
-        while (isTimerRunning) {
-            delay(500L)
+        while (isTimerRunning && timeLeftInSeconds > 0) {
+            delay(1000L)
 
             if (pills.size < maxPills) {
                 pills = pills + generatePills(data)
+            }
+
+            if (!isSkipTimerClicked) {
+                if (timeLeftInSeconds > 0) {
+                    timeLeftInSeconds -= 1
+                }
+            }
+            if (timeLeftInSeconds == 0) {
+                onTimerEnd()
+            }
+        }
+    }
+
+    LaunchedEffect(isSkipTimerClicked) {
+        if (isSkipTimerClicked) {
+            delay(500L)
+            timeLeftInSeconds = 5
+            isSkipTimerClicked = false
+            if (timeLeftInSeconds == 0) {
+                onTimerEnd()
             }
         }
     }
@@ -144,13 +166,12 @@ fun AnalysisMachine(
         }
     }
 
-
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(data.darkColor),
         contentAlignment = Alignment.Center
-    ){
+    ) {
         pills.forEachIndexed { index, pill ->
             if (pill.visible) {
                 if (pill.isGood) {
@@ -184,34 +205,39 @@ fun AnalysisMachine(
         }
 
         Text(
+            text = "Time Left: $timeLeftInSeconds seconds",
+            color = data.lightColor,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 16.dp)
+        )
+
+        Text(
             text = "Score: $score",
             color = data.lightColor,
-            modifier = Modifier.align(Alignment.TopCenter).padding(16.dp)
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 16.dp, end = 16.dp)
         )
 
         Column(
-            modifier = Modifier.align(Alignment.Center),
-            verticalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .align(Alignment.Center)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Analysis Machine Running",
-                color = data.lightColor,
-            )
-            RoundTimer(data = data, onTimerEnd = onTimerEnd)
-            if (isTimerRunning) {
-            }
             Button(
                 onClick = {
-                    context.startActivity(Intent(context, MainActivity::class.java))
-                    onStartClick()
+                    isSkipTimerClicked = true
                 },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = data.lightColor,
                     contentColor = data.darkColor
-                )
+                ),
+                modifier = Modifier.padding(top = 16.dp)
             ) {
-                Text("End Game", color = data.darkColor)
+                Text("Skip to Last 5 Seconds", color = data.darkColor)
             }
         }
     }
@@ -221,7 +247,7 @@ fun AnalysisMachine(
 fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
     val context = LocalContext.current
     val sharedPreferences = context.getSharedPreferences("GamePrefs", MODE_PRIVATE)
-    val totalFlasks = sharedPreferences.getInt("antiRadiationFlasks", 0).coerceAtMost(8) // Ensure max is 8
+    val totalFlasks = sharedPreferences.getInt("antiRadiationFlasks", 0).coerceAtMost(8)
     val cooldownEndTime = sharedPreferences.getLong("cooldownEndTime", 0L)
 
     val currentTime = System.currentTimeMillis()
@@ -257,6 +283,21 @@ fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
                     color = data.lightColor,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
+
+
+                Button(
+                    onClick = {
+                        val newCooldownTime = System.currentTimeMillis() + 5000L
+                        sharedPreferences.edit().putLong("cooldownEndTime", newCooldownTime).apply()
+                        remainingTime = 5
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = data.lightColor,
+                        contentColor = data.darkColor
+                    )
+                ) {
+                    Text("Cheats: Skip Cooldown", color = Color.Black)
+                }
             } else {
                 Button(
                     onClick = onStartClick,
@@ -277,27 +318,6 @@ fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
             )
         }
 
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Button(
-                onClick = {
-                    val newCooldownTime = System.currentTimeMillis() + 5000L
-                    sharedPreferences.edit().putLong("cooldownEndTime", newCooldownTime).apply()
-                    remainingTime = 5
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = data.lightColor,
-                    contentColor = data.darkColor
-                )
-            ) {
-                Text("Cheats: Skip Cooldown", color = Color.Black)
-            }
-        }
-
         Button(
             onClick = {
                 val intent = Intent(context, MainActivity::class.java)
@@ -315,6 +335,7 @@ fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
         }
     }
 }
+
 
 
 @Composable
@@ -467,7 +488,6 @@ fun generatePills(data: ActivityData): List<Pills> {
 @Preview(showBackground = true)
 @Composable
 fun AnalysisMachinePreview() {
-    // example score state
     var score by remember { mutableIntStateOf(10) }
 
     AnalysisMachine(
