@@ -4,6 +4,7 @@ import android.content.Context.MODE_PRIVATE
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -51,6 +52,8 @@ data class Pills(
     val isGood: Boolean = true,
     val velocityY: Float = 2f
 )
+
+var totalFlasks = 0
 
 class AnalysisMachineActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -197,7 +200,7 @@ fun AnalysisMachine(
                                 pills = pills.mapIndexed { i, c ->
                                     if (i == index) c.copy(visible = false) else c
                                 }
-                                onScoreChange((score - 5).coerceAtLeast(0))
+                                onScoreChange((score - 2).coerceAtLeast(0))
                             }
                     )
                 }
@@ -247,7 +250,7 @@ fun AnalysisMachine(
 fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
     val context = LocalContext.current
     val sharedPreferences = context.getSharedPreferences("GamePrefs", MODE_PRIVATE)
-    val totalFlasks = sharedPreferences.getInt("antiRadiationFlasks", 0).coerceAtMost(8)
+//    var totalFlasks = sharedPreferences.getInt("antiRadiationFlasks", 0).coerceAtMost(8)
     val cooldownEndTime = sharedPreferences.getLong("cooldownEndTime", 0L)
 
     val currentTime = System.currentTimeMillis()
@@ -255,14 +258,18 @@ fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
     val isInCooldown = totalFlasks >= 8 && remainingTime > 0
 
     LaunchedEffect(isInCooldown) {
-        if (isInCooldown) {
+        if (isInCooldown) { //Cooldown active
             while (remainingTime > 0) {
                 delay(1000L)
                 remainingTime -= 1
             }
+            if (remainingTime == 0 && totalFlasks == 8)
+                totalFlasks = 0
         } else if (cooldownEndTime > 0) {
-            sharedPreferences.edit().putInt("antiRadiationFlasks", 0).apply()
+            sharedPreferences.edit().putInt("antiRadiationFlasks", totalFlasks).apply()
         }
+
+
     }
 
     Box(
@@ -341,22 +348,25 @@ fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
 @Composable
 fun EndScreen(onStartClick: () -> Unit, data: ActivityData, score: Int) {
     val context = LocalContext.current
-    val antiRadiationFlasks = (score * 0.1).toInt()
+    val antiRadiationFlasks = (score * 0.1).toInt() //how many flasks did you won depending on how many pills you clicked on (10 pills = 1 flask)
 
     LaunchedEffect(antiRadiationFlasks) {
         val sharedPreferences = context.getSharedPreferences("GamePrefs", MODE_PRIVATE)
-        val currentFlasks = sharedPreferences.getInt("antiRadiationFlasks", 0)
+        val currentFlasks = sharedPreferences.getInt("antiRadiationFlasks", totalFlasks)
 
-        var newTotalFlasks = currentFlasks + antiRadiationFlasks
-        if (newTotalFlasks > 8) {
-            newTotalFlasks = 8
+        if (totalFlasks < 8) {
+            totalFlasks = currentFlasks + antiRadiationFlasks;
+        }
+
+        if (totalFlasks >= 8) {
+            totalFlasks = 8
         }
 
         val editor = sharedPreferences.edit()
-        editor.putInt("antiRadiationFlasks", newTotalFlasks)
+        editor.putInt("antiRadiationFlasks", totalFlasks)
 
 
-        if (newTotalFlasks >= 8) {
+        if (totalFlasks >= 8) {
             val cooldownEndTime = System.currentTimeMillis() + 3600000L // 1 hour in milliseconds
             editor.putLong("cooldownEndTime", cooldownEndTime)
         }
@@ -464,7 +474,7 @@ fun generatePills(data: ActivityData): List<Pills> {
                 color = data.lightColor,
                 visible = true,
                 isGood = (0..3).random() <= 1,
-                velocityY = 3f
+                velocityY = 14f //for testing purposes it's higher (we haven't decided on a fixed number)
             )
 
             isPositionValid = pills.all { existingPill ->
