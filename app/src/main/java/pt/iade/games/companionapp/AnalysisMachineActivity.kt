@@ -82,7 +82,7 @@ fun ScreenManager(
 
     if (gameStarted) {
         AnalysisMachine(
-            onStartClick = { gameEnded = true },
+            onStartClick = { },
             onTimerEnd = { gameEnded = true },
             isTimerRunning = isTimerRunning,
             data = data,
