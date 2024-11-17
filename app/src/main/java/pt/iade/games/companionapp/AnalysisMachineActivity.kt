@@ -40,6 +40,7 @@ import kotlinx.coroutines.delay
 import kotlin.math.hypot
 import pt.iade.games.companionapp.ui.data.ActivityData
 import pt.iade.games.companionapp.ui.theme.CompanionAppTheme
+import kotlin.random.Random
 
 data class Pills(
     var x: Float,
@@ -117,19 +118,22 @@ fun AnalysisMachine(
     onScoreChange: (Int) -> Unit,
     data: ActivityData
 ) {
-    var pills by remember { mutableStateOf(generatePills(data)) }
-    val context = LocalContext.current
-    val screenHeight = LocalContext.current.resources.displayMetrics.heightPixels.toFloat()
     val maxPills = 40
     var timeLeftInSeconds by remember { mutableStateOf(60) }
     var isSkipTimerClicked by remember { mutableStateOf(false) }
+    var screenWidth = LocalContext.current.resources.displayMetrics.widthPixels.toFloat()
+    var screenHeight = LocalContext.current.resources.displayMetrics.heightPixels.toFloat()
+    var pills by remember { mutableStateOf(generatePills(data, screenWidth, screenHeight)) }
+
 
     LaunchedEffect(isTimerRunning) {
         while (isTimerRunning && timeLeftInSeconds > 0) {
             delay(1000L)
 
             if (pills.size < maxPills) {
-                pills = pills + generatePills(data)
+                val newPills = generatePills(data, screenWidth, screenHeight)
+                pills = pills + newPills
+
             }
 
             if (!isSkipTimerClicked) {
@@ -157,7 +161,7 @@ fun AnalysisMachine(
 
     LaunchedEffect(pills) {
         while (true) {
-            delay(32L)
+            delay(16)
             pills = pills.map { pill ->
                 if (pill.y > screenHeight) {
                     null
@@ -267,7 +271,7 @@ fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
     val isInCooldown = playersFlasks >= 8 && remainingTime > 0
 
     LaunchedEffect(isInCooldown) {
-        if (isInCooldown) { //Cooldown active
+        if (isInCooldown) {
             while (remainingTime > 0) {
                 delay(1000L)
                 remainingTime -= 1
@@ -471,9 +475,15 @@ fun PillsClicker() {
 
 }
 
-fun generatePills(data: ActivityData): List<Pills> {
+fun generatePills(data: ActivityData, screenWidth: Float, screenHeight: Float): List<Pills> {
     val pills = mutableListOf<Pills>()
-    val minDistance = 50f
+    val gridSize = 100f
+    val gridWidth = (screenWidth / gridSize).toInt()
+    val gridHeight = (screenHeight / gridSize).toInt()
+
+    val grid = Array(gridWidth) { Array(gridHeight) { mutableListOf<Pills>() } }
+
+    val minDistance = 60f
     val pillRadius = 50f
 
     repeat(1) {
@@ -493,13 +503,27 @@ fun generatePills(data: ActivityData): List<Pills> {
                 speed = 0f,
                 color = data.lightColor,
                 visible = true,
-                isGood = (0..3).random() <= 1,
-                velocityY = 14f //for testing purposes it's higher (we haven't decided on a fixed number)
+                isGood = (0..5).random() <= 3,
+                velocityY = 8f // For testing purposes, it's higher
             )
 
-            isPositionValid = pills.all { existingPill ->
-                val distance = hypot((existingPill.x - newPill.x), (existingPill.y - newPill.y))
-                distance >= (existingPill.radius + newPill.radius + minDistance)
+            val gridX = ((x + screenWidth / 2) / gridSize).toInt().coerceIn(0, gridWidth - 1)
+            val gridY = ((y + screenHeight / 2) / gridSize).toInt().coerceIn(0, gridHeight - 1)
+
+
+            val nearbyCells = listOf(
+                gridX to gridY,
+                (gridX - 1).coerceAtLeast(0) to gridY,
+                (gridX + 1).coerceAtMost(gridWidth - 1) to gridY,
+                gridX to (gridY - 1).coerceAtLeast(0),
+                gridX to (gridY + 1).coerceAtMost(gridHeight - 1)
+            )
+
+            isPositionValid = nearbyCells.all { (cx, cy) ->
+                grid[cx][cy].all { existingPill ->
+                    val distance = hypot((existingPill.x - newPill.x), (existingPill.y - newPill.y))
+                    distance >= (existingPill.radius + newPill.radius + minDistance)
+                }
             }
 
             attempts++
@@ -507,11 +531,47 @@ fun generatePills(data: ActivityData): List<Pills> {
 
         if (isPositionValid) {
             pills.add(newPill)
+
+            val gridX = ((newPill.x + screenWidth / 2) / gridSize).toInt()
+            val gridY = ((newPill.y + screenHeight / 2) / gridSize).toInt()
+            grid[gridX][gridY].add(newPill)
         }
     }
 
     return pills
 }
+
+fun isPositionValid(pill: Pills, existingPills: List<Pills>, grid: MutableMap<Pair<Int, Int>, MutableList<Pills>>, gridSize: Float): Boolean {
+    val gridX = (pill.x / gridSize).toInt()
+    val gridY = (pill.y / gridSize).toInt()
+
+    for (i in -1..1) {
+        for (j in -1..1) {
+            val nearbyGrid = grid[Pair(gridX + i, gridY + j)]
+            if (nearbyGrid != null) {
+                for (otherPill in nearbyGrid) {
+                    if (hypot(pill.x - otherPill.x, pill.y - otherPill.y) < pill.radius + otherPill.radius) {
+                        return false
+                    }
+                }
+            }
+        }
+    }
+    return true
+}
+
+fun updateGrid(pill: Pills, grid: MutableMap<Pair<Int, Int>, MutableList<Pills>>, gridSize: Float) {
+    val gridX = (pill.x / gridSize).toInt()
+    val gridY = (pill.y / gridSize).toInt()
+    val key = Pair(gridX, gridY)
+
+    if (grid.containsKey(key)) {
+        grid[key]?.add(pill)
+    } else {
+        grid[key] = mutableListOf(pill)
+    }
+}
+
 
 
 
