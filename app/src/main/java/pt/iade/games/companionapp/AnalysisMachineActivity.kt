@@ -365,7 +365,7 @@ fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
 @Composable
 fun EndScreen(onStartClick: () -> Unit, data: ActivityData, score: Int) {
     val context = LocalContext.current
-    val roundFlasks = (score * 0.1).toInt() //how many flasks did you won depending on how many pills you clicked on (10 pills = 1 flask)
+    val roundFlasks = (score * 0.1).toInt().coerceAtMost(8) //how many flasks did you win depending on how many pills you clicked on (10 pills = 1 flask)
 
     LaunchedEffect(roundFlasks) {
         val sharedPreferences = context.getSharedPreferences("GamePrefs", MODE_PRIVATE)
