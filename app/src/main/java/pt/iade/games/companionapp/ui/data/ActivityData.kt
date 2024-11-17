@@ -8,11 +8,8 @@ data class ActivityData(
     val lightColor: Color,
 ) : Serializable
 
-// val sem = Gson().fromJson(semJson, ActivityData::class.java) from Json
-// val projectJson = Gson().toJson(project) to Json
-
 // Intent(context, Scene::class.java).apply {  Send Data
 //                    putExtra("NAMEOFSTRINGTOSEND", stringToSend)
 //                }
 
-//val semJson = intent.getStringExtra("SEMESTER") Get data
+//intent.getStringExtra("SEMESTER") Get data

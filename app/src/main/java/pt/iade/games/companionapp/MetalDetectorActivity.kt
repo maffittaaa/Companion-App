@@ -163,20 +163,37 @@ fun MetalDetectorScanningScreen(onTreasureFound: () -> Unit, data: ActivityData)
 
 @Composable
 fun MetalDetectorTreasureFoundScreen(data: ActivityData) {
+    val context = LocalContext.current
 
-        Box(
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(data.darkColor)
+            .padding(0.dp, 25.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "Treasure Found!",
+            color = data.lightColor,
+            fontSize = 40.sp
+        )
+
+        Button(
+            onClick = {
+                val intent = Intent(context, MainActivity::class.java)
+                context.startActivity(intent)
+            },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = data.lightColor,
+                contentColor = data.darkColor
+            ),
             modifier = Modifier
-                .fillMaxSize()
-                .background(data.darkColor)
-                .padding(0.dp, 25.dp),
-            contentAlignment = Alignment.Center
+                .align(Alignment.TopStart)
+                .padding(30.dp)
         ) {
-            Text(
-                text = "Treasure Found!",
-                color = data.lightColor,
-                fontSize = 40.sp
-            )
+            Text("Back", color = data.darkColor)
         }
+    }
 }
 
 @Preview(showBackground = true)
