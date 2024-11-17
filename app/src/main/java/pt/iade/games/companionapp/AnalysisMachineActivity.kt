@@ -46,7 +46,7 @@ data class Pills(
     var x: Float,
     var y: Float,
     val radius: Float,
-    var speed: Float,
+    //var speed: Float,
     val color: Color,
     var visible: Boolean = true,
     val isGood: Boolean = true,
@@ -476,104 +476,106 @@ fun PillsClicker() {
 }
 
 fun generatePills(data: ActivityData, screenWidth: Float, screenHeight: Float): List<Pills> {
-    val pills = mutableListOf<Pills>()
-    val gridSize = 100f
+    val pills = mutableListOf<Pills>() //list of pills
+
+    val gridSize = 100f  //each cell is 100f
     val gridWidth = (screenWidth / gridSize).toInt()
     val gridHeight = (screenHeight / gridSize).toInt()
 
-    val grid = Array(gridWidth) { Array(gridHeight) { mutableListOf<Pills>() } }
+    val grid = mutableMapOf<Pair<Int, Int>, MutableList<Pills>>()
 
-    val minDistance = 60f
-    val pillRadius = 50f
+    val minDistance = 200f //minimum distance between pills radiuses
+    val pillRadius = 50f //
 
-    repeat(1) {
+    repeat(1) { //eventually change this to more but bc of performance issues im keeping it at 1 spawn at a time
         var newPill: Pills
         var isPositionValid: Boolean
         var attempts = 0
-        val maxAttempts = 100
+        val maxAttempts = 50
 
         do {
-            val x = (-200..200).random().toFloat()
+            val x = (-200..200).random().toFloat() // eventually change this to be radius and screenwidth,, but it seems that i cant use floats with the random,, ask nathan
             val y = (-1000..-500).random().toFloat()
 
             newPill = Pills(
                 x = x,
                 y = y,
                 radius = pillRadius,
-                speed = 0f,
+                //speed = 0f,
                 color = data.lightColor,
                 visible = true,
-                isGood = (0..5).random() <= 3,
-                velocityY = 8f // For testing purposes, it's higher
+                isGood = (0..5).random() <= 3, //4 in 6 chance of good pill
+                velocityY = 8f
             )
 
-            val gridX = ((x + screenWidth / 2) / gridSize).toInt().coerceIn(0, gridWidth - 1)
+            val gridX = ((x + screenWidth / 2) / gridSize).toInt().coerceIn(0, gridWidth - 1) //places pill into grid, taking into account screen center and cell bounds
             val gridY = ((y + screenHeight / 2) / gridSize).toInt().coerceIn(0, gridHeight - 1)
 
 
-            val nearbyCells = listOf(
-                gridX to gridY,
-                (gridX - 1).coerceAtLeast(0) to gridY,
-                (gridX + 1).coerceAtMost(gridWidth - 1) to gridY,
-                gridX to (gridY - 1).coerceAtLeast(0),
-                gridX to (gridY + 1).coerceAtMost(gridHeight - 1)
-            )
+            //val nearbyCells = listOf(
+                //gridX to gridY,
+                //(gridX - 1).coerceAtLeast(0) to gridY, //left cell,, doesnt go bellow 0 cell
+               // (gridX + 1).coerceAtMost(gridWidth - 1) to gridY, //right cell, doesnt go between most cell
+               // gridX to (gridY - 1).coerceAtLeast(0), //up cell
+              //  gridX to (gridY + 1).coerceAtMost(gridHeight - 1) //down cell
+           // )
 
-            isPositionValid = nearbyCells.all { (cx, cy) ->
-                grid[cx][cy].all { existingPill ->
-                    val distance = hypot((existingPill.x - newPill.x), (existingPill.y - newPill.y))
-                    distance >= (existingPill.radius + newPill.radius + minDistance)
-                }
-            }
+            //isPositionValid = nearbyCells.all { (cx, cy) ->
+                //grid[cx][cy].all { existingPill ->
+                 //   val distance = hypot((existingPill.x - newPill.x), (existingPill.y - newPill.y)) //pitagoras to see the distance between pills
+               //     distance >= (existingPill.radius + newPill.radius + minDistance) //if distance is over min distance then its a valid pill
+             //   }
+           // }
+
+            isPositionValid = isPositionValid(newPill, pills, grid, gridSize)
+
 
             attempts++
-        } while (!isPositionValid && attempts < maxAttempts)
+        } while (!isPositionValid && attempts < maxAttempts) //keeps trying until max number of attempts
 
-        if (isPositionValid) {
+        if (isPositionValid) { //if the pill is valid add it to the list
             pills.add(newPill)
+            updateGrid(newPill, grid, gridSize) // update grid with the new valid pill
 
-            val gridX = ((newPill.x + screenWidth / 2) / gridSize).toInt()
-            val gridY = ((newPill.y + screenHeight / 2) / gridSize).toInt()
-            grid[gridX][gridY].add(newPill)
+            //val gridX = ((newPill.x + screenWidth / 2) / gridSize).toInt() //place new pill into grid
+            //val gridY = ((newPill.y + screenHeight / 2) / gridSize).toInt()
+            //grid[gridX][gridY].add(newPill)
+
         }
     }
-
     return pills
 }
 
 fun isPositionValid(pill: Pills, existingPills: List<Pills>, grid: MutableMap<Pair<Int, Int>, MutableList<Pills>>, gridSize: Float): Boolean {
-    val gridX = (pill.x / gridSize).toInt()
-    val gridY = (pill.y / gridSize).toInt()
+    val gridX = (pill.x / gridSize).toInt() //calculates what cellx it belongs to
+    val gridY = (pill.y / gridSize).toInt() //calculates what celly it belongs to
 
-    for (i in -1..1) {
+    for (i in -1..1) { //goes through the nearby cells
         for (j in -1..1) {
             val nearbyGrid = grid[Pair(gridX + i, gridY + j)]
-            if (nearbyGrid != null) {
+            if (nearbyGrid != null) { //if pills are here
                 for (otherPill in nearbyGrid) {
-                    if (hypot(pill.x - otherPill.x, pill.y - otherPill.y) < pill.radius + otherPill.radius) {
-                        return false
+                    if (hypot(pill.x - otherPill.x, pill.y - otherPill.y) < pill.radius + otherPill.radius) { //compare distance to see if its bigger than their radiuses added
+                        return false //its false if position isnt possible
                     }
                 }
             }
         }
     }
-    return true
+    return true //its true if positions are good
 }
 
 fun updateGrid(pill: Pills, grid: MutableMap<Pair<Int, Int>, MutableList<Pills>>, gridSize: Float) {
-    val gridX = (pill.x / gridSize).toInt()
+    val gridX = (pill.x / gridSize).toInt() //calculate what cell it is at
     val gridY = (pill.y / gridSize).toInt()
-    val key = Pair(gridX, gridY)
+    val key = Pair(gridX, gridY) //key stores (x,y)
 
-    if (grid.containsKey(key)) {
+    if (grid.containsKey(key)) { //if grid has pills add a pill to to the list, if not create list and place pill
         grid[key]?.add(pill)
     } else {
         grid[key] = mutableListOf(pill)
     }
 }
-
-
-
 
 @Preview(showBackground = true)
 @Composable
