@@ -64,8 +64,8 @@ class AnalysisMachineActivity : ComponentActivity() {
             CompanionAppTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     innerPadding
-                    val data = intent.getSerializableExtra("DATA", ActivityData::class.java)!!
-                    //ScreenManager(data)
+                    val data = intent.getSerializableExtra("DATA")!! as ActivityData
+                    ScreenManager(data)
                 }
             }
         }
