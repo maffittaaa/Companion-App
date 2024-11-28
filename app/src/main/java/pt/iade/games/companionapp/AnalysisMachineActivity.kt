@@ -4,13 +4,16 @@ import android.content.Context.MODE_PRIVATE
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,13 +32,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlin.math.hypot
 import pt.iade.games.companionapp.ui.data.ActivityData
@@ -79,7 +87,12 @@ fun ScreenManager(
     var gameStarted by remember { mutableStateOf(false)}
     var gameEnded by remember { mutableStateOf(false)}
     var isTimerRunning by remember { mutableStateOf(false) }
-    var score by remember { mutableIntStateOf(0) }
+    var score by rememberSaveable { mutableStateOf(0) }
+    var onScoreChange: (Int) -> Unit = { newScore ->
+        Log.i("ScoreUpdate", "New score: $newScore")
+        score += newScore
+
+    }
 
     if (gameStarted) {
         AnalysisMachine(
@@ -88,7 +101,7 @@ fun ScreenManager(
             isTimerRunning = isTimerRunning,
             data = data,
             score = score,
-            onScoreChange = { newScore -> score = newScore }
+            onScoreChange = onScoreChange
         )
     } else
     {
@@ -117,6 +130,7 @@ fun AnalysisMachine(
     score: Int,
     onScoreChange: (Int) -> Unit,
     data: ActivityData
+
 ) {
     val maxPills = 40
     var timeLeftInSeconds by remember { mutableStateOf(60) }
@@ -125,7 +139,6 @@ fun AnalysisMachine(
     var screenHeight = LocalContext.current.resources.displayMetrics.heightPixels.toFloat()
     var pills by remember { mutableStateOf(generatePills(data, screenWidth, screenHeight)) }
 
-
     LaunchedEffect(isTimerRunning) {
         while (isTimerRunning && timeLeftInSeconds > 0) {
             delay(1000L)
@@ -133,7 +146,6 @@ fun AnalysisMachine(
             if (pills.size < maxPills) {
                 val newPills = generatePills(data, screenWidth, screenHeight)
                 pills = pills + newPills
-
             }
 
             if (!isSkipTimerClicked) {
@@ -147,24 +159,12 @@ fun AnalysisMachine(
         }
     }
 
-    LaunchedEffect(isSkipTimerClicked) {
-        if (isSkipTimerClicked) {
-            delay(500L)
-            timeLeftInSeconds = 5
-            isSkipTimerClicked = false
-            if (timeLeftInSeconds == 0) {
-                onTimerEnd()
-            }
-        }
-    }
-
-
     LaunchedEffect(pills) {
         while (true) {
-            delay(16)
+            delay(16L) // ~60 FPS
             pills = pills.map { pill ->
                 if (pill.y > screenHeight) {
-                    null
+                    null // Remove pills that fall out of the screen
                 } else {
                     pill.copy(y = pill.y + pill.velocityY)
                 }
@@ -178,37 +178,52 @@ fun AnalysisMachine(
             .background(data.darkColor),
         contentAlignment = Alignment.Center
     ) {
-        pills.forEachIndexed { index, pill ->
-            if (pill.visible) {
-                if (pill.isGood) {
-                    Box(
-                        modifier = Modifier
-                            .offset(x = pill.x.dp, y = pill.y.dp)
-                            .size(pill.radius.dp)
-                            .background(pill.color, CircleShape)
-                            .clickable {
-                                pills = pills.mapIndexed { i, c ->
-                                    if (i == index) c.copy(visible = false) else c
-                                }
-                                onScoreChange(score + 1)
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectTapGestures { offset ->
+                        // Check if any pill was tapped
+                        pills = pills.map { pill ->
+                            if (pill.visible && isTapped(offset, pill)) {
+                                // Update score based on the type of pill
+                                println("Pill clicked: $pill")
+                                val updatedScore = if (pill.isGood) score + 1 else score - 2
+                                println("Current Score: $score, Updated Score: $updatedScore")
+                                onScoreChange(updatedScore)
+                                pill.copy(visible = false) // Mark pill as invisible
+                            } else {
+                                pill
                             }
+                        }
+                    }
+                }
+        ) {
+            pills.forEach { pill ->
+                if (pill.visible && pill.isGood) {
+                    drawCircle(
+                        color = pill.color,
+                        center = Offset(pill.x, pill.y),
+                        radius = pill.radius
                     )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .offset(x = pill.x.dp, y = pill.y.dp)
-                            .size(pill.radius.dp)
-                            .background(pill.color)
-                            .clickable {
-                                pills = pills.mapIndexed { i, c ->
-                                    if (i == index) c.copy(visible = false) else c
-                                }
-                                onScoreChange((score - 2).coerceAtLeast(0))
-                            }
+                }
+                if (pill.visible && pill.isGood == false) {
+                    drawRect(
+                        color = pill.color,
+                        topLeft = Offset(pill.x - pill.radius, pill.y - pill.radius),
+                        size = Size(pill.radius * 2, pill.radius * 2)
                     )
                 }
             }
         }
+        Text(
+            text = "Score: $score",
+            fontSize = 24.sp,
+            color = data.lightColor,
+            modifier = Modifier
+                .padding(16.dp)
+                .align(Alignment.TopEnd)
+        )
 
         Text(
             text = "Time Left: $timeLeftInSeconds seconds",
@@ -217,14 +232,6 @@ fun AnalysisMachine(
                 .align(Alignment.TopCenter)
                 .padding(top = 50.dp)
         )
-
-        Text(
-            text = "Score: $score",
-            color = Color.White,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = 50.dp, end = 16.dp)
-        )
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -232,18 +239,6 @@ fun AnalysisMachine(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Button(
-                onClick = {
-                    isSkipTimerClicked = true
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = data.lightColor,
-                    contentColor = data.darkColor
-                )
-            ) {
-                Text("Skip to Last 5 Seconds", color = data.darkColor)
-            }
-
             Button(
                 onClick = {
                     onScoreChange(score + 10)
@@ -255,9 +250,28 @@ fun AnalysisMachine(
             ) {
                 Text("Adds +10 to score", color = data.darkColor)
             }
+            Button(
+                onClick = {
+                    isSkipTimerClicked = true
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = data.lightColor,
+                    contentColor = data.darkColor
+                )
+            ) {
+                Text("Skip to Last 5 Seconds", color = data.darkColor)
+            }
         }
+
     }
 }
+
+// Helper function to check if a pill is tapped
+fun isTapped(offset: Offset, pill: Pills): Boolean {
+    val distance = hypot(offset.x - pill.x, offset.y - pill.y)
+    return distance <= pill.radius
+}
+
 
 @Composable
 fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
@@ -413,22 +427,22 @@ fun EndScreen(onStartClick: () -> Unit, data: ActivityData, score: Int) {
                 modifier = Modifier.padding(bottom = 32.dp)
             )
         }
-            Button(
-                onClick = {
-                    //val intent = Intent(context, MainActivity::class.java)
-                    //context.startActivity(intent)
-                    onStartClick()
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = data.lightColor,
-                    contentColor = data.darkColor
-                ),
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 16.dp)
-            ) {
-                Text("Back", color = data.darkColor)
-            }
+        Button(
+            onClick = {
+                //val intent = Intent(context, MainActivity::class.java)
+                //context.startActivity(intent)
+                onStartClick()
+            },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = data.lightColor,
+                contentColor = data.darkColor
+            ),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 16.dp)
+        ) {
+            Text("Back", color = data.darkColor)
+        }
     }
 }
 
@@ -513,19 +527,19 @@ fun generatePills(data: ActivityData, screenWidth: Float, screenHeight: Float): 
 
 
             //val nearbyCells = listOf(
-                //gridX to gridY,
-                //(gridX - 1).coerceAtLeast(0) to gridY, //left cell,, doesnt go bellow 0 cell
-               // (gridX + 1).coerceAtMost(gridWidth - 1) to gridY, //right cell, doesnt go between most cell
-               // gridX to (gridY - 1).coerceAtLeast(0), //up cell
-              //  gridX to (gridY + 1).coerceAtMost(gridHeight - 1) //down cell
-           // )
+            //gridX to gridY,
+            //(gridX - 1).coerceAtLeast(0) to gridY, //left cell,, doesnt go bellow 0 cell
+            // (gridX + 1).coerceAtMost(gridWidth - 1) to gridY, //right cell, doesnt go between most cell
+            // gridX to (gridY - 1).coerceAtLeast(0), //up cell
+            //  gridX to (gridY + 1).coerceAtMost(gridHeight - 1) //down cell
+            // )
 
             //isPositionValid = nearbyCells.all { (cx, cy) ->
-                //grid[cx][cy].all { existingPill ->
-                 //   val distance = hypot((existingPill.x - newPill.x), (existingPill.y - newPill.y)) //pitagoras to see the distance between pills
-               //     distance >= (existingPill.radius + newPill.radius + minDistance) //if distance is over min distance then its a valid pill
-             //   }
-           // }
+            //grid[cx][cy].all { existingPill ->
+            //   val distance = hypot((existingPill.x - newPill.x), (existingPill.y - newPill.y)) //pitagoras to see the distance between pills
+            //     distance >= (existingPill.radius + newPill.radius + minDistance) //if distance is over min distance then its a valid pill
+            //   }
+            // }
 
             isPositionValid = isPositionValid(newPill, pills, grid, gridSize)
 
@@ -575,24 +589,6 @@ fun updateGrid(pill: Pills, grid: MutableMap<Pair<Int, Int>, MutableList<Pills>>
     } else {
         grid[key] = mutableListOf(pill)
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun AnalysisMachinePreview() {
-    var score by remember { mutableIntStateOf(10) }
-
-    AnalysisMachine(
-        onStartClick = {},
-        data = ActivityData(
-            lightColor = Color.LightGray,
-            darkColor = Color.Red
-        ),
-        onTimerEnd = {},
-        isTimerRunning = true,
-        score = score,
-        onScoreChange = { newScore -> score = newScore }
-    )
 }
 
 @Preview(showBackground = true)
