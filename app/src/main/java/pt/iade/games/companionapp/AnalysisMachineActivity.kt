@@ -218,19 +218,18 @@ fun AnalysisMachine(
         }
         Text(
             text = "Score: $score",
-            fontSize = 24.sp,
             color = data.lightColor,
             modifier = Modifier
-                .padding(16.dp)
+                .padding(50.dp)
                 .align(Alignment.TopEnd)
         )
 
         Text(
             text = "Time Left: $timeLeftInSeconds seconds",
-            color = Color.White,
+            color = data.lightColor,
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 50.dp)
+                .padding(50.dp)
         )
         Column(
             modifier = Modifier
@@ -508,7 +507,7 @@ fun generatePills(data: ActivityData, screenWidth: Float, screenHeight: Float): 
         val maxAttempts = 50
 
         do {
-            val x = (-200..200).random().toFloat() // eventually change this to be radius and screenwidth,, but it seems that i cant use floats with the random,, ask nathan
+            val x = (0..screenWidth.toInt()).random().toFloat() // eventually change this to be radius and screenwidth,, but it seems that i cant use floats with the random,, ask nathan
             val y = (-1000..-500).random().toFloat()
 
             newPill = Pills(
