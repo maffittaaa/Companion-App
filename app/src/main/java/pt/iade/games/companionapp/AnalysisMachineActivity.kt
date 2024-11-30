@@ -41,6 +41,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -49,12 +50,20 @@ import kotlin.math.hypot
 import pt.iade.games.companionapp.ui.data.ActivityData
 import pt.iade.games.companionapp.ui.theme.CompanionAppTheme
 import kotlin.random.Random
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.res.imageResource
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.graphics.asAndroidBitmap
+
 
 data class Pills(
     var x: Float,
     var y: Float,
     val radius: Float,
-    //var speed: Float,
     val color: Color,
     var visible: Boolean = true,
     val isGood: Boolean = true,
@@ -62,6 +71,14 @@ data class Pills(
 )
 
 var playersFlasks = 0
+
+//todo: fix timer breaking when skip timer is clicked DONE
+//todo add images instead of drawings DONE
+//todo: make score and timer be a collumn thingy DONE
+//todo: fix the offsets on the good pills
+//todo: fix bad pills being hard to click
+//todo add score bottom cap at 0 DONE
+
 
 class AnalysisMachineActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -90,7 +107,7 @@ fun ScreenManager(
     var score by rememberSaveable { mutableStateOf(0) }
     var onScoreChange: (Int) -> Unit = { newScore ->
         Log.i("ScoreUpdate", "New score: $newScore")
-        score += newScore
+        score = (score + newScore).coerceAtLeast(0)
 
     }
 
@@ -122,6 +139,7 @@ fun ScreenManager(
     }
 }
 
+
 @Composable
 fun AnalysisMachine(
     onStartClick: () -> Unit,
@@ -139,22 +157,32 @@ fun AnalysisMachine(
     var screenHeight = LocalContext.current.resources.displayMetrics.heightPixels.toFloat()
     var pills by remember { mutableStateOf(generatePills(data, screenWidth, screenHeight)) }
 
-    LaunchedEffect(isTimerRunning) {
+    val pillImage = ImageBitmap.imageResource(id = R.drawable.pill)
+    val radiationImage = ImageBitmap.imageResource(id = R.drawable.radiation)
+    val pillBitmap = pillImage.asAndroidBitmap()
+    val radiationBitmap = radiationImage.asAndroidBitmap()
+
+    LaunchedEffect(isTimerRunning, isSkipTimerClicked) {
         while (isTimerRunning && timeLeftInSeconds > 0) {
-            delay(1000L)
-
-            if (pills.size < maxPills) {
-                val newPills = generatePills(data, screenWidth, screenHeight)
-                pills = pills + newPills
+            if (isSkipTimerClicked) {
+                timeLeftInSeconds = 5
+                isSkipTimerClicked = false
+            } else {
+                delay(1000L)
+                timeLeftInSeconds -= 1
             }
 
-            if (!isSkipTimerClicked) {
-                if (timeLeftInSeconds > 0) {
-                    timeLeftInSeconds -= 1
-                }
-            }
             if (timeLeftInSeconds == 0) {
                 onTimerEnd()
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(2000L) // This will control how often new pills spawn, every 1 second in this case
+            if (pills.size < maxPills) {
+                pills = pills + generatePills(data, screenWidth, screenHeight) // Append new pills
             }
         }
     }
@@ -198,39 +226,64 @@ fun AnalysisMachine(
                         }
                     }
                 }
-        ) {
+        ){
             pills.forEach { pill ->
-                if (pill.visible && pill.isGood) {
+                // Calculate scaling factor
+                val scale = (pill.radius * 2) / pillImage.width.toFloat()
+                // Draw the image with the scale applied
+                if (pill.visible) {
+                    withTransform({
+                        scale(scale, scale, Offset(pill.x, pill.y)) // Scaling around the pill's position
+                    }) {
+                        if (pill.isGood) {
+                            drawImage(
+                                pillImage,
+                                topLeft = Offset(pill.x, pill.y),
+                            )
+                        } else if (pill.isGood == false) {
+                            drawImage(
+                                radiationImage,
+                                topLeft = Offset(pill.x, pill.y),
+                            )
+                        }
+                    }
+                    if(pill.isGood) {
                     drawCircle(
                         color = pill.color,
                         center = Offset(pill.x, pill.y),
                         radius = pill.radius
                     )
-                }
-                if (pill.visible && pill.isGood == false) {
-                    drawRect(
-                        color = pill.color,
-                        topLeft = Offset(pill.x - pill.radius, pill.y - pill.radius),
-                        size = Size(pill.radius * 2, pill.radius * 2)
-                    )
+                        //if(pill.isGood == false) {
+                            //drawRect(
+                                //color = pill.color,
+                                //center = Offset(pill.x, pill.y),
+                                //radius = pill.radius
+                           //)
+
+                        //}
+                    }
                 }
             }
         }
-        Text(
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 30.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+        ){Text(
             text = "Score: $score",
             color = data.lightColor,
             modifier = Modifier
-                .padding(50.dp)
-                .align(Alignment.TopEnd)
+                .padding(2.dp)
         )
 
-        Text(
-            text = "Time Left: $timeLeftInSeconds seconds",
-            color = data.lightColor,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(50.dp)
-        )
+            Text(
+                text = "Time Left: $timeLeftInSeconds seconds",
+                color = data.lightColor,
+                modifier = Modifier
+                    .padding(2.dp)
+            )}
+
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
