@@ -11,8 +11,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,10 +21,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,25 +38,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
-import kotlin.math.hypot
 import pt.iade.games.companionapp.ui.data.ActivityData
 import pt.iade.games.companionapp.ui.theme.CompanionAppTheme
-import kotlin.random.Random
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.Canvas
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.withTransform
-import androidx.compose.ui.res.imageResource
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.graphics.asAndroidBitmap
+import kotlin.math.hypot
 
 
 data class Pills(
@@ -75,9 +68,12 @@ var playersFlasks = 0
 //todo: fix timer breaking when skip timer is clicked DONE
 //todo add images instead of drawings DONE
 //todo: make score and timer be a collumn thingy DONE
-//todo: fix the offsets on the good pills
-//todo: fix bad pills being hard to click
+//todo: fix the offsets on the good pills DONE
+//todo: fix bad pills being hard to click DONE
+//todo: add animation at the start DONE
 //todo add score bottom cap at 0 DONE
+//todo: flasks display in the corner
+//todo: center the cooldown text
 
 
 class AnalysisMachineActivity : ComponentActivity() {
@@ -159,8 +155,6 @@ fun AnalysisMachine(
 
     val pillImage = ImageBitmap.imageResource(id = R.drawable.pill)
     val radiationImage = ImageBitmap.imageResource(id = R.drawable.radiation)
-    val pillBitmap = pillImage.asAndroidBitmap()
-    val radiationBitmap = radiationImage.asAndroidBitmap()
 
     LaunchedEffect(isTimerRunning, isSkipTimerClicked) {
         while (isTimerRunning && timeLeftInSeconds > 0) {
@@ -233,7 +227,7 @@ fun AnalysisMachine(
                 // Draw the image with the scale applied
                 if (pill.visible) {
                     withTransform({
-                        scale(scale, scale, Offset(pill.x, pill.y)) // Scaling around the pill's position
+                        scale(scale, scale, Offset(pill.x - pill.radius, pill.y - pill.radius)) // Scaling around the pill's position
                     }) {
                         if (pill.isGood) {
                             drawImage(
@@ -248,11 +242,18 @@ fun AnalysisMachine(
                         }
                     }
                     if(pill.isGood) {
-                    drawCircle(
+                    //drawCircle(
+                        //color = pill.color,
+                        //center = Offset(pill.x, pill.y),
+                        //radius = pill.radius
+                    //)
+                    if(pill.isGood == false){
+                        drawRect(
                         color = pill.color,
-                        center = Offset(pill.x, pill.y),
-                        radius = pill.radius
-                    )
+                        topLeft = Offset(pill.x - pill.radius, pill.y - pill.radius), // This will center the rectangle
+                        size = Size(pill.radius * 2, pill.radius * 2 * 2)  // Size of the rectangle, equivalent to the circle's diameter
+                        )
+                    }
                         //if(pill.isGood == false) {
                             //drawRect(
                                 //color = pill.color,
@@ -293,7 +294,7 @@ fun AnalysisMachine(
         ) {
             Button(
                 onClick = {
-                    onScoreChange(score + 10)
+                    onScoreChange(10)
                 },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = data.lightColor,
@@ -347,8 +348,6 @@ fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
         } else if (cooldownEndTime > 0) {
             sharedPreferences.edit().putInt("antiRadiationFlasks", playersFlasks).apply()
         }
-
-
     }
 
     Box(
@@ -387,6 +386,7 @@ fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
                 color = data.lightColor,
                 modifier = Modifier.padding(top = 16.dp)
             )
+
         }
 
         if(isInCooldown){
@@ -407,7 +407,7 @@ fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
                 Text("Cheats: Skip Cooldown", color = data.darkColor)
             }
         }
-
+        StartScreenAnimation()
         Button(
             onClick = {
                 val intent = Intent(context, MainActivity::class.java)
@@ -426,6 +426,42 @@ fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
     }
 }
 
+@Composable
+fun StartScreenAnimation() {
+    // List of images for the animation
+    val imageFrames = listOf(
+        painterResource(id = R.drawable.analysismachine1),
+        painterResource(id = R.drawable.analysismachine2),
+        painterResource(id = R.drawable.analysismachine3),
+    )
+
+    // State to hold the current frame index
+    var currentFrame by remember { mutableStateOf(0) }
+
+    // Periodically switch to the next frame
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(500L) // Switch frames every 500ms
+            currentFrame = (currentFrame + 1) % imageFrames.size // Loop through frames
+        }
+    }
+
+    // Display the image at a fixed position
+    Box(
+        modifier = Modifier
+            .fillMaxSize() // Ensure Box fills the screen space
+
+    ) {
+        Image(
+            painter = imageFrames[currentFrame],
+            contentDescription = "Animated Analysis Machine",
+            modifier = Modifier
+                .size(200.dp) // Adjust size as needed
+                .align(Alignment.Center)
+                .offset(y = (-150).dp)
+        )
+    }
+}
 
 
 @Composable
