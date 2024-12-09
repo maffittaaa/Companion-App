@@ -93,6 +93,8 @@ fun ScreenManager(
     var gameEnded by remember { mutableStateOf(false)}
     var isTimerRunning by remember { mutableStateOf(false) }
     var score by rememberSaveable { mutableStateOf(0) }
+    var speedMultiplier by remember { mutableStateOf(1.0f) }
+
     var onScoreChange: (Int) -> Unit = { newScore ->
         Log.i("ScoreUpdate", "New score: $newScore")
         score = (score + newScore).coerceAtLeast(0)
@@ -106,7 +108,9 @@ fun ScreenManager(
             isTimerRunning = isTimerRunning,
             data = data,
             score = score,
-            onScoreChange = onScoreChange
+            onScoreChange = onScoreChange,
+            speedMultiplier = speedMultiplier,
+            onSpeedMultiplierChange = { speedMultiplier += it}
         )
     } else
     {
@@ -122,6 +126,7 @@ fun ScreenManager(
             gameStarted = false
             isTimerRunning = false
             score = 0
+            speedMultiplier = 1.0f
         }, data = data,
             score = score)
     }
@@ -135,7 +140,9 @@ fun AnalysisMachine(
     isTimerRunning: Boolean,
     score: Int,
     onScoreChange: (Int) -> Unit,
-    data: ActivityData
+    data: ActivityData,
+    speedMultiplier: Float,
+    onSpeedMultiplierChange: (Float) -> Unit
 
 ) {
     val maxPills = 40
@@ -174,13 +181,14 @@ fun AnalysisMachine(
     }
 
     LaunchedEffect(pills) {
+        Log.d("pills", "$speedMultiplier")
         while (true) {
             delay(16L) // ~60 FPS
             pills = pills.map { pill ->
                 if (pill.y > screenHeight) {
                     null // Remove pills that fall out of the screen
                 } else {
-                    pill.copy(y = pill.y + pill.velocityY)
+                    pill.copy(y = pill.y + pill.velocityY * speedMultiplier)
                 }
             }.filterNotNull()
         }
@@ -201,10 +209,9 @@ fun AnalysisMachine(
                         pills = pills.map { pill ->
                             if (pill.visible && isTapped(offset, pill)) {
                                 // Update score based on the type of pill
-                                println("Pill clicked: $pill")
                                 val updatedScore = if (pill.isGood) score + 1 else score - 2
-                                println("Current Score: $score, Updated Score: $updatedScore")
                                 onScoreChange(updatedScore)
+                                onSpeedMultiplierChange(0.1f)
                                 pill.copy(visible = false) // Mark pill as invisible
                             } else {
                                 pill
@@ -356,7 +363,7 @@ fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
                 .offset(x = 15.dp, y = 5.dp)
         ) {
             Image(
-                painter = painterResource(id = R.drawable.flaskimage), // Ensure resource exists.
+                painter = painterResource(id = R.drawable.flaskimage),
                 contentDescription = "Anti-Radiation Flask",
                 modifier = Modifier
                     .size(100.dp) // Adjust size as needed.
@@ -609,11 +616,6 @@ fun itemRain(){
     Toast.makeText(context, "hi", Toast.LENGTH_SHORT).show()
 }
 
-@Composable
-fun PillsClicker() {
-
-}
-
 fun generatePills(data: ActivityData, screenWidth: Float, screenHeight: Float): List<Pills> {
     val pills = mutableListOf<Pills>() //list of pills
 
@@ -644,7 +646,7 @@ fun generatePills(data: ActivityData, screenWidth: Float, screenHeight: Float): 
                 color = data.lightColor,
                 visible = true,
                 isGood = (0..5).random() <= 3, //4 in 6 chance of good pill
-                velocityY = 8f
+                velocityY = 8f //* speedMultiplier
             )
 
             val gridX = ((x + screenWidth / 2) / gridSize).toInt().coerceIn(0, gridWidth - 1) //places pill into grid, taking into account screen center and cell bounds
