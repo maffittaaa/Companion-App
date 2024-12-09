@@ -47,6 +47,7 @@ import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import pt.iade.games.companionapp.ui.data.ActivityData
 import pt.iade.games.companionapp.ui.theme.CompanionAppTheme
@@ -65,16 +66,7 @@ data class Pills(
 
 var playersFlasks = 0
 
-//todo: fix timer breaking when skip timer is clicked DONE
-//todo add images instead of drawings DONE
-//todo: make score and timer be a collumn thingy DONE
-//todo: fix the offsets on the good pills DONE
-//todo: fix bad pills being hard to click DONE
-//todo: add animation at the start DONE
-//todo add score bottom cap at 0 DONE
-//todo: flasks display in the corner
-//todo: center the cooldown text
-
+//todo: add incremental speed when pills are tapped
 
 class AnalysisMachineActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -350,11 +342,35 @@ fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
         }
     }
 
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(data.darkColor),
     ) {
+        // Top-right corner: Flask image and counter.
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(20.dp)
+                .offset(x = 15.dp, y = 5.dp)
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.flaskimage), // Ensure resource exists.
+                contentDescription = "Anti-Radiation Flask",
+                modifier = Modifier
+                    .size(100.dp) // Adjust size as needed.
+            )
+            Text(
+                text = "x$playersFlasks",
+                color = data.lightColor,
+                fontSize = 16.sp,
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .offset(x = (-5).dp, y = 10.dp) // Adjust for proper placement near the image.
+            )
+        }
+
         Column(
             modifier = Modifier.align(Alignment.Center),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -364,9 +380,10 @@ fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
                 val seconds = (remainingTime % 60).toString().padStart(2, '0')
 
                 Text(
-                    text = "Cooldown active! Wait $minutes:$seconds before playing again.",
+                    text = "Wait $minutes:$seconds before playing again.",
                     color = data.lightColor,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    modifier = Modifier
+                        .padding(bottom = 16.dp)
                 )
             } else {
                 Button(
@@ -381,11 +398,11 @@ fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
                 }
             }
 
-            Text(
-                text = "Total Anti-Radiation Flasks: $playersFlasks",
-                color = data.lightColor,
-                modifier = Modifier.padding(top = 16.dp)
-            )
+            //Text(
+                //text = "Total Anti-Radiation Flasks: $playersFlasks",
+                //color = data.lightColor,
+                //modifier = Modifier.padding(top = 16.dp)
+            //)
 
         }
 
@@ -428,17 +445,14 @@ fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
 
 @Composable
 fun StartScreenAnimation() {
-    // List of images for the animation
     val imageFrames = listOf(
         painterResource(id = R.drawable.analysismachine1),
         painterResource(id = R.drawable.analysismachine2),
         painterResource(id = R.drawable.analysismachine3),
     )
 
-    // State to hold the current frame index
     var currentFrame by remember { mutableStateOf(0) }
 
-    // Periodically switch to the next frame
     LaunchedEffect(Unit) {
         while (true) {
             delay(500L) // Switch frames every 500ms
@@ -446,17 +460,16 @@ fun StartScreenAnimation() {
         }
     }
 
-    // Display the image at a fixed position
     Box(
         modifier = Modifier
-            .fillMaxSize() // Ensure Box fills the screen space
+            .fillMaxSize()
 
     ) {
         Image(
             painter = imageFrames[currentFrame],
             contentDescription = "Animated Analysis Machine",
             modifier = Modifier
-                .size(200.dp) // Adjust size as needed
+                .size(200.dp)
                 .align(Alignment.Center)
                 .offset(y = (-150).dp)
         )
@@ -493,16 +506,42 @@ fun EndScreen(onStartClick: () -> Unit, data: ActivityData, score: Int) {
         editor.apply()
     }
 
-
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(data.darkColor),
-        contentAlignment = Alignment.Center
     ) {
+        // Flask counter and image in the top-right corner.
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(20.dp)
+                .offset(x = 15.dp, y = 5.dp)
+        ) {
+            // Flask image.
+            Image(
+                painter = painterResource(id = R.drawable.flaskimage), // Ensure resource exists.
+                contentDescription = "Anti-Radiation Flask",
+                modifier = Modifier
+                    .size(100.dp)
+            )
+
+            // Counter positioned relative to the flask image.
+            Text(
+                text = "x$roundFlasks",
+                color = data.lightColor,
+                fontSize = 16.sp,
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .offset(x = (-5).dp, y = 10.dp) // Slightly offset for better positioning.
+            )
+        }
+
+        // Main content (score and message) in the center.
         Column(
-            modifier = Modifier.align(Alignment.Center),
-            horizontalAlignment = Alignment.CenterHorizontally) {
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.align(Alignment.Center)
+        ) {
             Text(
                 text = "Final Score: $score",
                 color = data.lightColor,
@@ -510,17 +549,15 @@ fun EndScreen(onStartClick: () -> Unit, data: ActivityData, score: Int) {
             )
 
             Text(
-                text = "Anti-Radiation Flasks: $roundFlasks",
+                text = "This round you won $roundFlasks Anti-Radiation Flasks",
                 color = data.lightColor,
                 modifier = Modifier.padding(bottom = 32.dp)
             )
         }
+
+        // Back button at the bottom center.
         Button(
-            onClick = {
-                //val intent = Intent(context, MainActivity::class.java)
-                //context.startActivity(intent)
-                onStartClick()
-            },
+            onClick = onStartClick,
             colors = ButtonDefaults.buttonColors(
                 containerColor = data.lightColor,
                 contentColor = data.darkColor
