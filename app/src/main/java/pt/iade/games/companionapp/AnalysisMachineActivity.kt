@@ -173,7 +173,7 @@ fun AnalysisMachine(
 
     LaunchedEffect(Unit) {
         while (true) {
-            delay(2000L) // This will control how often new pills spawn, every 1 second in this case
+            delay(1000L) // This will control how often new pills spawn, every 1 second in this case
             if (pills.size < maxPills) {
                 pills = pills + generatePills(data, screenWidth, screenHeight) // Append new pills
             }
