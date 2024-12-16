@@ -211,7 +211,7 @@ fun AnalysisMachine(
                                 // Update score based on the type of pill
                                 val updatedScore = if (pill.isGood) score + 1 else score - 2
                                 onScoreChange(updatedScore)
-                                onSpeedMultiplierChange(0.1f)
+                                onSpeedMultiplierChange(0.2f)
                                 pill.copy(visible = false) // Mark pill as invisible
                             } else {
                                 pill
@@ -628,7 +628,7 @@ fun generatePills(data: ActivityData, screenWidth: Float, screenHeight: Float): 
     val minDistance = 200f //minimum distance between pills radiuses
     val pillRadius = 50f //
 
-    repeat(1) { //eventually change this to more but bc of performance issues im keeping it at 1 spawn at a time
+    repeat(3) { //eventually change this to more but bc of performance issues im keeping it at 1 spawn at a time
         var newPill: Pills
         var isPositionValid: Boolean
         var attempts = 0
@@ -646,7 +646,7 @@ fun generatePills(data: ActivityData, screenWidth: Float, screenHeight: Float): 
                 color = data.lightColor,
                 visible = true,
                 isGood = (0..5).random() <= 3, //4 in 6 chance of good pill
-                velocityY = 8f //* speedMultiplier
+                velocityY = 12f //* speedMultiplier
             )
 
             val gridX = ((x + screenWidth / 2) / gridSize).toInt().coerceIn(0, gridWidth - 1) //places pill into grid, taking into account screen center and cell bounds
