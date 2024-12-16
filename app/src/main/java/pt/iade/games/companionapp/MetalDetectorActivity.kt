@@ -30,6 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import pt.iade.games.companionapp.controllers.UpdateAntiRadiationFlasks
 import pt.iade.games.companionapp.ui.data.ActivityData
 import pt.iade.games.companionapp.ui.theme.CompanionAppTheme
 
@@ -42,7 +43,7 @@ class MetalDetectorActivity : ComponentActivity() {
             CompanionAppTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     innerPadding
-                    val data = intent.getSerializableExtra("DATA", ActivityData::class.java)!!
+                    val data = intent.getSerializableExtra("DATA")!! as ActivityData
                     MetalDetectorScreenManager(data)
                 }
             }
@@ -142,6 +143,8 @@ fun MetalDetectorScanningScreen(onTreasureFound: () -> Unit, data: ActivityData)
             delay(1000L)
             timeLeftInSeconds -= 1
         }
+        UpdateAntiRadiationFlasks().ConnectToComputer(UpdateAntiRadiationFlasks().GetNewConnection())
+
         isDoneScanning = true
         onTreasureFound()
     }
