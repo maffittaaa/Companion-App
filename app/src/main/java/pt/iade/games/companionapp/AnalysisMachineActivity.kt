@@ -61,7 +61,7 @@ data class Pills(
     val color: Color,
     var visible: Boolean = true,
     val isGood: Boolean = true,
-    val velocityY: Float = 2f
+    val velocityY: Float = 10f
 )
 
 var playersFlasks = 0
@@ -181,7 +181,6 @@ fun AnalysisMachine(
     }
 
     LaunchedEffect(pills) {
-        Log.d("pills", "$speedMultiplier")
         while (true) {
             delay(16L) // ~60 FPS
             pills = pills.map { pill ->
@@ -211,7 +210,7 @@ fun AnalysisMachine(
                                 // Update score based on the type of pill
                                 val updatedScore = if (pill.isGood) score + 1 else score - 2
                                 onScoreChange(updatedScore)
-                                onSpeedMultiplierChange(0.2f)
+                                onSpeedMultiplierChange(0.05f)
                                 pill.copy(visible = false) // Mark pill as invisible
                             } else {
                                 pill
@@ -241,11 +240,6 @@ fun AnalysisMachine(
                         }
                     }
                     if(pill.isGood) {
-                    //drawCircle(
-                        //color = pill.color,
-                        //center = Offset(pill.x, pill.y),
-                        //radius = pill.radius
-                    //)
                     if(pill.isGood == false){
                         drawRect(
                         color = pill.color,
@@ -253,14 +247,6 @@ fun AnalysisMachine(
                         size = Size(pill.radius * 2, pill.radius * 2 * 2)  // Size of the rectangle, equivalent to the circle's diameter
                         )
                     }
-                        //if(pill.isGood == false) {
-                            //drawRect(
-                                //color = pill.color,
-                                //center = Offset(pill.x, pill.y),
-                                //radius = pill.radius
-                           //)
-
-                        //}
                     }
                 }
             }
@@ -329,7 +315,6 @@ fun isTapped(offset: Offset, pill: Pills): Boolean {
 fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
     val context = LocalContext.current
     val sharedPreferences = context.getSharedPreferences("GamePrefs", MODE_PRIVATE)
-//    var totalFlasks = sharedPreferences.getInt("antiRadiationFlasks", 0).coerceAtMost(8)
     val cooldownEndTime = sharedPreferences.getLong("cooldownEndTime", 0L)
 
     val currentTime = System.currentTimeMillis()
@@ -628,7 +613,7 @@ fun generatePills(data: ActivityData, screenWidth: Float, screenHeight: Float): 
     val minDistance = 200f //minimum distance between pills radiuses
     val pillRadius = 50f //
 
-    repeat(3) { //eventually change this to more but bc of performance issues im keeping it at 1 spawn at a time
+    repeat(3) {
         var newPill: Pills
         var isPositionValid: Boolean
         var attempts = 0
@@ -646,27 +631,11 @@ fun generatePills(data: ActivityData, screenWidth: Float, screenHeight: Float): 
                 color = data.lightColor,
                 visible = true,
                 isGood = (0..5).random() <= 3, //4 in 6 chance of good pill
-                velocityY = 12f //* speedMultiplier
+                velocityY = 10f //* speedMultiplier
             )
 
             val gridX = ((x + screenWidth / 2) / gridSize).toInt().coerceIn(0, gridWidth - 1) //places pill into grid, taking into account screen center and cell bounds
             val gridY = ((y + screenHeight / 2) / gridSize).toInt().coerceIn(0, gridHeight - 1)
-
-
-            //val nearbyCells = listOf(
-            //gridX to gridY,
-            //(gridX - 1).coerceAtLeast(0) to gridY, //left cell,, doesnt go bellow 0 cell
-            // (gridX + 1).coerceAtMost(gridWidth - 1) to gridY, //right cell, doesnt go between most cell
-            // gridX to (gridY - 1).coerceAtLeast(0), //up cell
-            //  gridX to (gridY + 1).coerceAtMost(gridHeight - 1) //down cell
-            // )
-
-            //isPositionValid = nearbyCells.all { (cx, cy) ->
-            //grid[cx][cy].all { existingPill ->
-            //   val distance = hypot((existingPill.x - newPill.x), (existingPill.y - newPill.y)) //pitagoras to see the distance between pills
-            //     distance >= (existingPill.radius + newPill.radius + minDistance) //if distance is over min distance then its a valid pill
-            //   }
-            // }
 
             isPositionValid = isPositionValid(newPill, pills, grid, gridSize)
 
@@ -677,11 +646,6 @@ fun generatePills(data: ActivityData, screenWidth: Float, screenHeight: Float): 
         if (isPositionValid) { //if the pill is valid add it to the list
             pills.add(newPill)
             updateGrid(newPill, grid, gridSize) // update grid with the new valid pill
-
-            //val gridX = ((newPill.x + screenWidth / 2) / gridSize).toInt() //place new pill into grid
-            //val gridY = ((newPill.y + screenHeight / 2) / gridSize).toInt()
-            //grid[gridX][gridY].add(newPill)
-
         }
     }
     return pills
