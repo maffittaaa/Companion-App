@@ -5,7 +5,6 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -28,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,7 +39,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -58,15 +57,14 @@ data class Pills(
     var x: Float,
     var y: Float,
     val radius: Float,
+    var touchRadius: Float,
     val color: Color,
     var visible: Boolean = true,
     val isGood: Boolean = true,
-    val velocityY: Float = 10f
+    val velocityY: Float = 8f
 )
 
 var playersFlasks = 0
-
-//todo: add incremental speed when pills are tapped
 
 class AnalysisMachineActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -92,18 +90,16 @@ fun ScreenManager(
     var gameStarted by remember { mutableStateOf(false)}
     var gameEnded by remember { mutableStateOf(false)}
     var isTimerRunning by remember { mutableStateOf(false) }
-    var score by rememberSaveable { mutableStateOf(0) }
-    var speedMultiplier by remember { mutableStateOf(1.0f) }
+    var score by rememberSaveable { mutableIntStateOf(0) }
+    var speedMultiplier by remember { mutableFloatStateOf(1.0f) }
 
-    var onScoreChange: (Int) -> Unit = { newScore ->
+    val onScoreChange: (Int) -> Unit = { newScore ->
         Log.i("ScoreUpdate", "New score: $newScore")
         score = (score + newScore).coerceAtLeast(0)
-
     }
 
     if (gameStarted) {
         AnalysisMachine(
-            onStartClick = { },
             onTimerEnd = { gameEnded = true },
             isTimerRunning = isTimerRunning,
             data = data,
@@ -132,10 +128,8 @@ fun ScreenManager(
     }
 }
 
-
 @Composable
 fun AnalysisMachine(
-    onStartClick: () -> Unit,
     onTimerEnd: () -> Unit,
     isTimerRunning: Boolean,
     score: Int,
@@ -146,11 +140,11 @@ fun AnalysisMachine(
 
 ) {
     val maxPills = 40
-    var timeLeftInSeconds by remember { mutableStateOf(60) }
+    var timeLeftInSeconds by remember { mutableIntStateOf(60) }
     var isSkipTimerClicked by remember { mutableStateOf(false) }
-    var screenWidth = LocalContext.current.resources.displayMetrics.widthPixels.toFloat()
-    var screenHeight = LocalContext.current.resources.displayMetrics.heightPixels.toFloat()
-    var pills by remember { mutableStateOf(generatePills(data, screenWidth, screenHeight)) }
+    val screenWidth = LocalContext.current.resources.displayMetrics.widthPixels.toFloat()
+    val screenHeight = LocalContext.current.resources.displayMetrics.heightPixels.toFloat()
+    var pills by remember { mutableStateOf(generatePills(data, screenWidth)) }
 
     val pillImage = ImageBitmap.imageResource(id = R.drawable.pill)
     val radiationImage = ImageBitmap.imageResource(id = R.drawable.radiation)
@@ -175,7 +169,7 @@ fun AnalysisMachine(
         while (true) {
             delay(1000L) // This will control how often new pills spawn, every 1 second in this case
             if (pills.size < maxPills) {
-                pills = pills + generatePills(data, screenWidth, screenHeight) // Append new pills
+                pills = pills + generatePills(data, screenWidth) // Append new pills
             }
         }
     }
@@ -183,13 +177,13 @@ fun AnalysisMachine(
     LaunchedEffect(pills) {
         while (true) {
             delay(16L) // ~60 FPS
-            pills = pills.map { pill ->
+            pills = pills.mapNotNull { pill ->
                 if (pill.y > screenHeight) {
                     null // Remove pills that fall out of the screen
                 } else {
                     pill.copy(y = pill.y + pill.velocityY * speedMultiplier)
                 }
-            }.filterNotNull()
+            }
         }
     }
 
@@ -232,21 +226,19 @@ fun AnalysisMachine(
                                 pillImage,
                                 topLeft = Offset(pill.x, pill.y),
                             )
-                        } else if (pill.isGood == false) {
+                        }
+                        if (!pill.isGood) {
+                            drawRect(
+                                color = pill.color,
+                                topLeft = Offset(pill.x - pill.radius, pill.y - pill.radius), // This will center the rectangle
+                                size = Size(pill.radius * 2, pill.radius * 2 * 2)  // Size of the rectangle, equivalent to the circle's diameter
+                            )
                             drawImage(
                                 radiationImage,
                                 topLeft = Offset(pill.x, pill.y),
                             )
+
                         }
-                    }
-                    if(pill.isGood) {
-                    if(pill.isGood == false){
-                        drawRect(
-                        color = pill.color,
-                        topLeft = Offset(pill.x - pill.radius, pill.y - pill.radius), // This will center the rectangle
-                        size = Size(pill.radius * 2, pill.radius * 2 * 2)  // Size of the rectangle, equivalent to the circle's diameter
-                        )
-                    }
                     }
                 }
             }
@@ -307,7 +299,7 @@ fun AnalysisMachine(
 // Helper function to check if a pill is tapped
 fun isTapped(offset: Offset, pill: Pills): Boolean {
     val distance = hypot(offset.x - pill.x, offset.y - pill.y)
-    return distance <= pill.radius
+    return distance <= pill.touchRadius
 }
 
 
@@ -389,13 +381,6 @@ fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
                     Text("Start Game", color = data.darkColor)
                 }
             }
-
-            //Text(
-                //text = "Total Anti-Radiation Flasks: $playersFlasks",
-                //color = data.lightColor,
-                //modifier = Modifier.padding(top = 16.dp)
-            //)
-
         }
 
         if(isInCooldown){
@@ -443,7 +428,7 @@ fun StartScreenAnimation() {
         painterResource(id = R.drawable.analysismachine3),
     )
 
-    var currentFrame by remember { mutableStateOf(0) }
+    var currentFrame by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -479,7 +464,7 @@ fun EndScreen(onStartClick: () -> Unit, data: ActivityData, score: Int) {
         val flasksBeforeRound = sharedPreferences.getInt("antiRadiationFlasks", playersFlasks)
 
         if (playersFlasks < 8) {
-            playersFlasks = flasksBeforeRound + roundFlasks;
+            playersFlasks = flasksBeforeRound + roundFlasks
         }
 
         if (playersFlasks >= 8) {
@@ -564,54 +549,47 @@ fun EndScreen(onStartClick: () -> Unit, data: ActivityData, score: Int) {
 }
 
 
-@Composable
-fun RoundTimer(data: ActivityData, onTimerEnd: () -> Unit){
-    val totalTime = 60
-    var timeLeftInRound by remember { mutableIntStateOf(totalTime) }
-    var isTimerRunning by remember { mutableStateOf(true) }
+//@Composable
+//fun RoundTimer(data: ActivityData, onTimerEnd: () -> Unit){
+//    val totalTime = 60
+//    var timeLeftInRound by remember { mutableIntStateOf(totalTime) }
+//    var isTimerRunning by remember { mutableStateOf(true) }
+//
+//    LaunchedEffect(isTimerRunning) {
+//        while (isTimerRunning && timeLeftInRound > 0) {
+//            delay(1000L)
+//            timeLeftInRound--
+//        }
+//        if (timeLeftInRound <= 0) {
+//            onTimerEnd()
+//        }
+//    }
+//
+//    Box(
+//        modifier = Modifier.fillMaxSize(),
+//        contentAlignment = Alignment.Center
+//    ) {
+//        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+//            Text(
+//                text = "Time Left: ${timeLeftInRound / 60}:${(timeLeftInRound % 60).toString().padStart(2, '0')}",
+//                color = Color.White,
+//                modifier = Modifier
+//                    .padding(top = 16.dp)
+//            )
+//        }
+//    }
+//}
 
-    LaunchedEffect(isTimerRunning) {
-        while (isTimerRunning && timeLeftInRound > 0) {
-            delay(1000L)
-            timeLeftInRound--
-        }
-        if (timeLeftInRound <= 0) {
-            onTimerEnd()
-        }
-    }
-
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "Time Left: ${timeLeftInRound / 60}:${(timeLeftInRound % 60).toString().padStart(2, '0')}",
-                color = Color.White,
-                modifier = Modifier
-                    .padding(top = 16.dp)
-            )
-        }
-    }
-}
-
-@Composable
-fun itemRain(){
-    val context = LocalContext.current
-    Toast.makeText(context, "hi", Toast.LENGTH_SHORT).show()
-}
-
-fun generatePills(data: ActivityData, screenWidth: Float, screenHeight: Float): List<Pills> {
+fun generatePills(data: ActivityData, screenWidth: Float): List<Pills> {
     val pills = mutableListOf<Pills>() //list of pills
 
     val gridSize = 100f  //each cell is 100f
-    val gridWidth = (screenWidth / gridSize).toInt()
-    val gridHeight = (screenHeight / gridSize).toInt()
+    //val gridWidth = (screenWidth / gridSize).toInt()
+    //val gridHeight = (screenHeight / gridSize).toInt()
 
     val grid = mutableMapOf<Pair<Int, Int>, MutableList<Pills>>()
 
-    val minDistance = 200f //minimum distance between pills radiuses
-    val pillRadius = 50f //
+    //val minDistance = 200f //minimum distance between pills radiuses
 
     repeat(3) {
         var newPill: Pills
@@ -626,18 +604,18 @@ fun generatePills(data: ActivityData, screenWidth: Float, screenHeight: Float): 
             newPill = Pills(
                 x = x,
                 y = y,
-                radius = pillRadius,
-                //speed = 0f,
+                radius = 50f,
+                touchRadius = 100f,
                 color = data.lightColor,
                 visible = true,
                 isGood = (0..5).random() <= 3, //4 in 6 chance of good pill
-                velocityY = 10f //* speedMultiplier
+                velocityY = 8f
             )
 
-            val gridX = ((x + screenWidth / 2) / gridSize).toInt().coerceIn(0, gridWidth - 1) //places pill into grid, taking into account screen center and cell bounds
-            val gridY = ((y + screenHeight / 2) / gridSize).toInt().coerceIn(0, gridHeight - 1)
+            //val gridX = ((x + screenWidth / 2) / gridSize).toInt().coerceIn(0, gridWidth - 1) //places pill into grid, taking into account screen center and cell bounds
+            //val gridY = ((y + screenHeight / 2) / gridSize).toInt().coerceIn(0, gridHeight - 1)
 
-            isPositionValid = isPositionValid(newPill, pills, grid, gridSize)
+            isPositionValid = isPositionValid(newPill, grid, gridSize)
 
 
             attempts++
@@ -651,36 +629,40 @@ fun generatePills(data: ActivityData, screenWidth: Float, screenHeight: Float): 
     return pills
 }
 
-fun isPositionValid(pill: Pills, existingPills: List<Pills>, grid: MutableMap<Pair<Int, Int>, MutableList<Pills>>, gridSize: Float): Boolean {
-    val gridX = (pill.x / gridSize).toInt() //calculates what cellx it belongs to
-    val gridY = (pill.y / gridSize).toInt() //calculates what celly it belongs to
+fun isPositionValid(pill: Pills, grid: MutableMap<Pair<Int, Int>, MutableList<Pills>>, gridSize: Float): Boolean {
+    val gridX = (pill.x / gridSize).toInt() // Calculates which grid cell (x) the pill belongs to
+    val gridY = (pill.y / gridSize).toInt() // Calculates which grid cell (y) the pill belongs to
+    val nearbyCells = listOf(
+        gridX to gridY,
+        gridX - 1 to gridY,
+        gridX + 1 to gridY,
+        gridX to gridY - 1,
+        gridX to gridY + 1,
+        gridX - 1 to gridY - 1,
+        gridX + 1 to gridY + 1,
+        gridX - 1 to gridY + 1,
+        gridX + 1 to gridY - 1
+    ) // Checks all adjacent cells in the grid for potential collisions
 
-    for (i in -1..1) { //goes through the nearby cells
-        for (j in -1..1) {
-            val nearbyGrid = grid[Pair(gridX + i, gridY + j)]
-            if (nearbyGrid != null) { //if pills are here
-                for (otherPill in nearbyGrid) {
-                    if (hypot(pill.x - otherPill.x, pill.y - otherPill.y) < pill.radius + otherPill.radius) { //compare distance to see if its bigger than their radiuses added
-                        return false //its false if position isnt possible
-                    }
-                }
+    for (cell in nearbyCells) {
+        val pillsInCell = grid[cell] ?: continue
+        for (existingPill in pillsInCell) {
+            val distance = hypot(pill.x - existingPill.x, pill.y - existingPill.y)
+            if (distance < (pill.radius + existingPill.radius)) {
+                return false // Position invalid due to overlap
             }
         }
     }
-    return true //its true if positions are good
+    return true // Position valid if no overlaps
 }
 
 fun updateGrid(pill: Pills, grid: MutableMap<Pair<Int, Int>, MutableList<Pills>>, gridSize: Float) {
-    val gridX = (pill.x / gridSize).toInt() //calculate what cell it is at
+    val gridX = (pill.x / gridSize).toInt()
     val gridY = (pill.y / gridSize).toInt()
-    val key = Pair(gridX, gridY) //key stores (x,y)
-
-    if (grid.containsKey(key)) { //if grid has pills add a pill to to the list, if not create list and place pill
-        grid[key]?.add(pill)
-    } else {
-        grid[key] = mutableListOf(pill)
-    }
+    val cell = gridX to gridY
+    grid.computeIfAbsent(cell) { mutableListOf() }.add(pill) // Adds the pill to the appropriate cell in the grid
 }
+
 
 @Preview(showBackground = true)
 @Composable
