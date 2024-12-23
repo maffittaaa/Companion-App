@@ -37,8 +37,6 @@ class UpdateAntiRadiationFlasks {
         var code = -1
         Fuel.get("$serverBase/create")
             .responseJson { request, response, result ->
-                Log.e("INFO REQUEST", request.toString())
-                Log.e("INFO RESPONSE", response.toString())
                 val (json, error) = result
                 if (json != null) {
                     Log.e("NO ERROR","[response bytes] $result")

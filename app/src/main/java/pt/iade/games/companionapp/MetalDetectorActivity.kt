@@ -143,7 +143,6 @@ fun MetalDetectorScanningScreen(onTreasureFound: () -> Unit, data: ActivityData)
             delay(1000L)
             timeLeftInSeconds -= 1
         }
-        UpdateAntiRadiationFlasks().ConnectToComputer(UpdateAntiRadiationFlasks().GetNewConnection())
 
         isDoneScanning = true
         onTreasureFound()
