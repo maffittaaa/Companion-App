@@ -8,6 +8,10 @@ import com.github.kittinunf.fuel.json.responseJson
 open class APIRequests {
     val serverBase = "https://the-rumble-server.vercel.app"
     var postResponse: FuelJson? = null
+    var unity_connection_id = 0
+    var unity_android_connection_id = 0
+    var android_connection_id = 0
+    var android_connection_code = 0
 
     fun Get() : FuelJson? {
         var res: FuelJson? = null
