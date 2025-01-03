@@ -551,48 +551,11 @@ fun EndScreen(onStartClick: () -> Unit, data: ActivityData, score: Int) {
     }
 }
 
-
-//@Composable
-//fun RoundTimer(data: ActivityData, onTimerEnd: () -> Unit){
-//    val totalTime = 60
-//    var timeLeftInRound by remember { mutableIntStateOf(totalTime) }
-//    var isTimerRunning by remember { mutableStateOf(true) }
-//
-//    LaunchedEffect(isTimerRunning) {
-//        while (isTimerRunning && timeLeftInRound > 0) {
-//            delay(1000L)
-//            timeLeftInRound--
-//        }
-//        if (timeLeftInRound <= 0) {
-//            onTimerEnd()
-//        }
-//    }
-//
-//    Box(
-//        modifier = Modifier.fillMaxSize(),
-//        contentAlignment = Alignment.Center
-//    ) {
-//        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-//            Text(
-//                text = "Time Left: ${timeLeftInRound / 60}:${(timeLeftInRound % 60).toString().padStart(2, '0')}",
-//                color = Color.White,
-//                modifier = Modifier
-//                    .padding(top = 16.dp)
-//            )
-//        }
-//    }
-//}
-
 fun generatePills(data: ActivityData, screenWidth: Float): List<Pills> {
     val pills = mutableListOf<Pills>() //list of pills
 
     val gridSize = 100f  //each cell is 100f
-    //val gridWidth = (screenWidth / gridSize).toInt()
-    //val gridHeight = (screenHeight / gridSize).toInt()
-
     val grid = mutableMapOf<Pair<Int, Int>, MutableList<Pills>>()
-
-    //val minDistance = 200f //minimum distance between pills radiuses
 
     repeat(3) {
         var newPill: Pills
@@ -614,9 +577,6 @@ fun generatePills(data: ActivityData, screenWidth: Float): List<Pills> {
                 isGood = (0..5).random() <= 3, //4 in 6 chance of good pill
                 velocityY = 8f
             )
-
-            //val gridX = ((x + screenWidth / 2) / gridSize).toInt().coerceIn(0, gridWidth - 1) //places pill into grid, taking into account screen center and cell bounds
-            //val gridY = ((y + screenHeight / 2) / gridSize).toInt().coerceIn(0, gridHeight - 1)
 
             isPositionValid = isPositionValid(newPill, grid, gridSize)
 
