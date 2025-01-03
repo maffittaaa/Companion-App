@@ -6,5 +6,5 @@ import com.github.kittinunf.fuel.json.responseJson
 
 
 class UpdateAntiRadiationFlasks {
-    
+
 }

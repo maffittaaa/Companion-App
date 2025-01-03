@@ -49,7 +49,8 @@ class MainActivity : ComponentActivity() {
             CompanionAppTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                 innerPadding
-                    AppConnectedCheck()
+                    val appConnected = intent.getBooleanExtra("CONNECTED", false)
+                    AppConnectedCheck(appConnected)
                 }
             }
         }
@@ -106,9 +107,11 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun AppConnectedCheck(){
+    fun AppConnectedCheck(
+        connected: Boolean
+    ){
         var code by remember { mutableStateOf("") }
-        var appConnected by remember { mutableStateOf(false) }
+        var appConnected by remember { mutableStateOf(connected) }
 
         if (appConnected) {
             MainView()

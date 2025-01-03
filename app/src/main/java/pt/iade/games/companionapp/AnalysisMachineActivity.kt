@@ -405,7 +405,10 @@ fun StartScreen(onStartClick: () -> Unit, data: ActivityData) {
         Button(
             onClick = {
                 val intent = Intent(context, MainActivity::class.java)
-                context.startActivity(intent)
+                context.startActivity(intent.apply
+                {
+                    putExtra("CONNECTED", true)
+                })
             },
             colors = ButtonDefaults.buttonColors(
                 containerColor = data.lightColor,
