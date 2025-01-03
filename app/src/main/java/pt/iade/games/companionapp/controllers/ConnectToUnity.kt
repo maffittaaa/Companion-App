@@ -20,7 +20,8 @@ class ConnectToUnity : APIRequests() {
 
             println("unity = ${unity_connection_id}, both = ${unity_android_connection_id}, android = ${android_connection_id}")
         }else{
-         //Code not found
+            android_connection_code = 0
+
         }
     }
 }
