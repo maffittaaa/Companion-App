@@ -26,10 +26,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import pt.iade.games.companionapp.controllers.Treasure
 import pt.iade.games.companionapp.controllers.UpdateAntiRadiationFlasks
 import pt.iade.games.companionapp.ui.data.ActivityData
 import pt.iade.games.companionapp.ui.theme.CompanionAppTheme
@@ -115,7 +117,10 @@ fun MetalDetectorStartScreen(onStartClick: () -> Unit, data: ActivityData) {
         Button(
             onClick = {
                 val intent = Intent(context, MainActivity::class.java)
-                context.startActivity(intent)
+                context.startActivity(intent.apply
+                {
+                    putExtra("CONNECTED", true)
+                })
             },
             colors = ButtonDefaults.buttonColors(
                 containerColor = data.lightColor,
@@ -134,14 +139,24 @@ fun MetalDetectorStartScreen(onStartClick: () -> Unit, data: ActivityData) {
 
 @Composable
 fun MetalDetectorScanningScreen(onTreasureFound: () -> Unit, data: ActivityData){
-    var timeLeftInSeconds by remember { mutableStateOf(5) }
     var isDoneScanning by remember { mutableStateOf(false) }
+    var dotsAnimation by remember { mutableStateOf("") }
 
-    LaunchedEffect(timeLeftInSeconds) {
-        while (timeLeftInSeconds > 0) {
+    LaunchedEffect(isDoneScanning) {
+        Treasure().GetPlayerStats { isDoneScanning = true }
+        while (!isDoneScanning) {
             isDoneScanning = false
+
             delay(1000L)
-            timeLeftInSeconds -= 1
+
+            if(dotsAnimation.length >= 3)
+            {
+                dotsAnimation = ""
+            }else{
+                dotsAnimation += "."
+            }
+
+
         }
 
         isDoneScanning = true
@@ -156,7 +171,7 @@ fun MetalDetectorScanningScreen(onTreasureFound: () -> Unit, data: ActivityData)
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "Scanning... $timeLeftInSeconds",
+            text = "Scanning$dotsAnimation",
             color = data.lightColor,
             fontSize = 40.sp
             )
