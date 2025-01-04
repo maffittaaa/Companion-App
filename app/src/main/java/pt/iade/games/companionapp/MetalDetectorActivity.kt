@@ -140,12 +140,12 @@ fun MetalDetectorStartScreen(onStartClick: () -> Unit, data: ActivityData) {
 @Composable
 fun MetalDetectorScanningScreen(onTreasureFound: () -> Unit, data: ActivityData){
     var isDoneScanning by remember { mutableStateOf(false) }
+    var failed by remember { mutableStateOf(false) }
     var dotsAnimation by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     LaunchedEffect(isDoneScanning) {
-        while (!isDoneScanning) {
-            isDoneScanning = false
-
+        while (!isDoneScanning || !failed) {
             delay(1000L)
 
             if(dotsAnimation.length >= 3)
@@ -154,10 +154,15 @@ fun MetalDetectorScanningScreen(onTreasureFound: () -> Unit, data: ActivityData)
             }else{
                 dotsAnimation += "."
             }
-            Treasure().GetPlayerStats { isDoneScanning = true }
+            Treasure().GetPlayerStats({ isDoneScanning = true }, { failed = true })
         }
 
-        onTreasureFound()
+        if(failed){
+            val intent = Intent(context, MainActivity::class.java)
+            context.startActivity(intent)
+        }else if (isDoneScanning){
+            onTreasureFound()
+        }
     }
 
     Box(
