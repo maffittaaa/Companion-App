@@ -143,7 +143,6 @@ fun MetalDetectorScanningScreen(onTreasureFound: () -> Unit, data: ActivityData)
     var dotsAnimation by remember { mutableStateOf("") }
 
     LaunchedEffect(isDoneScanning) {
-        Treasure().GetPlayerStats { isDoneScanning = true }
         while (!isDoneScanning) {
             isDoneScanning = false
 
@@ -155,11 +154,9 @@ fun MetalDetectorScanningScreen(onTreasureFound: () -> Unit, data: ActivityData)
             }else{
                 dotsAnimation += "."
             }
-
-
+            Treasure().GetPlayerStats { isDoneScanning = true }
         }
 
-        isDoneScanning = true
         onTreasureFound()
     }
 

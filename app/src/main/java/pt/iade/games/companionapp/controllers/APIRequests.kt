@@ -14,7 +14,6 @@ open class APIRequests {
     val serverBase = "https://the-rumble-server.vercel.app"
     var postResponse: FuelJson? = null
 
-
     fun Get(
         endpoint: String,
     ) : FuelJson? {
@@ -46,22 +45,5 @@ open class APIRequests {
                     Log.e("ERROR","FAILED BECAUSE: $error")
                 }
             }
-    }
-
-    fun SetVariables(
-        unity_connection: Int,
-        unity_android_connection: Int,
-        android_connection: Int,
-        connection_code: Int,
-    ){
-        unity_connection_id = unity_connection
-        unity_android_connection_id = unity_android_connection
-        android_connection_id = android_connection
-        android_connection_code = connection_code
-    }
-
-    fun GetUnityAndroidConnection(
-    ) : Int{
-        return unity_android_connection_id
     }
 }
