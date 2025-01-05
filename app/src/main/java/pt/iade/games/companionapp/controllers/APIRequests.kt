@@ -14,20 +14,20 @@ open class APIRequests {
     val serverBase = "https://the-rumble-server.vercel.app"
     var postResponse: FuelJson? = null
 
+    var getRsponse: FuelJson? = null
+
     fun Get(
         endpoint: String,
-    ) : FuelJson? {
-        var res: FuelJson? = null
+    ){
         Fuel.get("$serverBase$endpoint")
             .responseJson { request, response, result ->
                 val (json, error) = result
                 if (json != null) {
-                    res = json
+                    getRsponse = json
                 }else{
                     Log.e("ERROR","FAILED BECAUSE: $error")
                 }
             }
-        return res
     }
 
     fun Post(

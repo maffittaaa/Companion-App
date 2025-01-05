@@ -26,13 +26,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import pt.iade.games.companionapp.controllers.Treasure
-import pt.iade.games.companionapp.controllers.UpdateAntiRadiationFlasks
 import pt.iade.games.companionapp.ui.data.ActivityData
 import pt.iade.games.companionapp.ui.theme.CompanionAppTheme
 
@@ -133,34 +131,41 @@ fun MetalDetectorStartScreen(onStartClick: () -> Unit, data: ActivityData) {
             Text("Back", color = data.darkColor)
         }
     }
-
-
 }
 
 @Composable
 fun MetalDetectorScanningScreen(onTreasureFound: () -> Unit, data: ActivityData){
     var isDoneScanning by remember { mutableStateOf(false) }
     var failed by remember { mutableStateOf(false) }
+    var connected by remember { mutableStateOf(true) }
     var dotsAnimation by remember { mutableStateOf("") }
     val context = LocalContext.current
 
     LaunchedEffect(isDoneScanning) {
-        while (!isDoneScanning || !failed) {
+        while (!isDoneScanning && !failed && connected) {
             delay(1000L)
 
-            if(dotsAnimation.length >= 3)
-            {
+            if(dotsAnimation.length >= 3) {
                 dotsAnimation = ""
             }else{
                 dotsAnimation += "."
             }
-            Treasure().GetPlayerStats({ isDoneScanning = true }, { failed = true })
+            Treasure().GetPlayerStats({ isDoneScanning = true }, { failed = true }, { connected = false }, context)
         }
 
-        if(failed){
+        if(!connected){
             val intent = Intent(context, MainActivity::class.java)
-            context.startActivity(intent)
-        }else if (isDoneScanning){
+            context.startActivity(intent.apply
+            {
+                putExtra("CONNECTED", false)
+            })
+        }else if (failed){
+            val intent = Intent(context, MainActivity::class.java)
+            context.startActivity(intent.apply
+            {
+                putExtra("CONNECTED", true)
+            })
+        }else{
             onTreasureFound()
         }
     }
@@ -200,7 +205,10 @@ fun MetalDetectorTreasureFoundScreen(data: ActivityData) {
         Button(
             onClick = {
                 val intent = Intent(context, MainActivity::class.java)
-                context.startActivity(intent)
+                context.startActivity(intent.apply
+                {
+                    putExtra("CONNECTED", true)
+                })
             },
             colors = ButtonDefaults.buttonColors(
                 containerColor = data.lightColor,
