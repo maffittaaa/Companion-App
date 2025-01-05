@@ -48,6 +48,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import pt.iade.games.companionapp.controllers.UpdateAntiRadiationFlasks
+import pt.iade.games.companionapp.controllers.unity_android_connection_id
 import pt.iade.games.companionapp.ui.data.ActivityData
 import pt.iade.games.companionapp.ui.theme.CompanionAppTheme
 import kotlin.math.hypot
@@ -484,6 +486,13 @@ fun EndScreen(onStartClick: () -> Unit, data: ActivityData, score: Int) {
         }
 
         editor.apply()
+        UpdateAntiRadiationFlasks().checkRows(unity_android_connection_id) { success ->
+            if (success) {
+                UpdateAntiRadiationFlasks().updateFlasks(roundFlasks);
+            } else {
+                UpdateAntiRadiationFlasks().insertFlasks(roundFlasks, unity_android_connection_id);
+            }
+        }
     }
 
     Box(
